@@ -1,0 +1,10 @@
+{
+  "acquired_at": null,
+  "bands": 3,
+  "bbox": null,
+  "crs": null,
+  "gsd_m": null,
+  "height": 64,
+  "modality": "optical",
+  "width": 64
+}

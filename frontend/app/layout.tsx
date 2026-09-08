@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -35,10 +34,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-[#05080b] text-white">
-      <body className="font-sans antialiased bg-[#05080b] text-white selection:bg-[#8eb7ff]/30 selection:text-white">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossOrigin="" />
+      </head>
+      <body className="font-sans antialiased bg-background text-foreground selection:bg-indigo-500/30 selection:text-foreground">
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

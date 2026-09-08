@@ -1,0 +1,10 @@
+{
+ "acquired_at": "2017-07-19T04:50:00Z",
+ "bands": 2,
+ "bbox": null,
+ "crs": null,
+ "gsd_m": 10.0,
+ "width": 120,
+ "height": 120,
+ "modality": "sar"
+}

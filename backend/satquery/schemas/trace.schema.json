@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SatQuery execution trace",
+  "description": "The graded artefact. The statement grades the observable execution trace and says internal reasoning is 'neither required nor evaluated', so this is not logging - it is the product. The GUI consumes traces and nothing else, which is what makes it impossible for the screen and the audit log to disagree. Every emitted trace validates against this schema, INCLUDING refusals: a rejected query still produces a complete trace with abstained true.",
+  "type": "object",
+  "required": ["trace_id", "query", "classified_task", "routing", "input_check", "steps", "output", "abstained", "replay"],
+  "additionalProperties": false,
+  "properties": {
+    "trace_id": {"type": "string"},
+    "query": {"type": "string"},
+    "classified_task": {
+      "type": ["string", "null"],
+      "description": "null when the gate rejected the input, because no task was ever selected."
+    },
+    "routing": {
+      "type": "object",
+      "required": ["by", "rule_id", "planner_used"],
+      "additionalProperties": false,
+      "properties": {
+        "by": {"type": "string", "enum": ["rule", "planner", "none"]},
+        "rule_id": {"type": ["string", "null"], "pattern": "^R[0-6]$"},
+        "planner_used": {"type": "boolean"},
+        "fanout": {
+          "type": ["object", "null"],
+          "description": "Set when more than two images were supplied and the question is answerable per image. Records that one call was made per image.",
+          "required": ["n_images", "n_calls"],
+          "additionalProperties": false,
+          "properties": {
+            "n_images": {"type": "integer"},
+            "n_calls": {"type": "integer"},
+            "note": {"type": "string"}
+          }
+        },
+        "pair_declaration": {
+          "type": ["string", "null"],
+          "description": "G1. Set when a pair was chosen out of more than two images. Says which two and why. Not a refusal."
+        }
+      }
+    },
+    "input_check": {
+      "type": "object",
+      "required": ["n_images", "modality", "verdict"],
+      "properties": {
+        "n_images": {"type": "integer", "minimum": 0},
+        "modality": {"type": "array", "items": {"type": "string"}},
+        "images": {"type": "array", "items": {"type": "object"}},
+        "crs": {"type": ["array", "null"], "items": {"type": ["string", "null"]}},
+        "crs_match": {"type": ["boolean", "null"]},
+        "coregistered": {"type": ["boolean", "null"]},
+        "max_offset_px": {"type": ["number", "null"]},
+        "gsd_m": {"type": ["array", "null"], "items": {"type": ["number", "null"]}},
+        "temporal_order": {"type": ["string", "null"], "enum": ["ascending", "descending", "same", null]},
+        "acquisitions": {"type": ["array", "null"], "items": {"type": ["string", "null"]}},
+        "footprint_check": {
+          "type": ["string", "null"],
+          "enum": ["computed", "degraded_no_georeferencing", "not_applicable", null],
+          "description": "'degraded' is the honest label for PNG and JPEG benchmark inputs, which carry no georeferencing, so the footprint comparison cannot be computed. The hidden ISRO set is GeoTIFF, so the strong check applies where it counts."
+        },
+        "verdict": {"type": "string", "enum": ["accepted", "rejected"]},
+        "code": {"type": ["string", "null"], "pattern": "^G[1-8]$"},
+        "message": {"type": ["string", "null"]},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tool", "params", "duration_ms"],
+        "additionalProperties": false,
+        "properties": {
+          "tool": {"type": "string"},
+          "params": {"type": "object"},
+          "duration_ms": {"type": "number", "minimum": 0},
+          "confidence": {"type": ["number", "null"]},
+          "cache": {"type": ["string", "null"], "enum": ["hit", "miss", null]},
+          "images": {"type": "array", "items": {"type": "integer"}},
+          "stub": {"type": "boolean"}
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {"type": "string"},
+        "raster": {"type": ["string", "null"]},
+        "geojson": {"type": ["string", "null"]},
+        "quantities": {"type": "object"},
+        "confidence": {"type": ["number", "null"]}
+      }
+    },
+    "abstained": {"type": "boolean"},
+    "replay": {
+      "type": "object",
+      "required": ["seed", "input_sha256", "registry_lock"],
+      "additionalProperties": false,
+      "properties": {
+        "seed": {"type": "integer"},
+        "input_sha256": {"type": "array", "items": {"type": "string"}},
+        "registry_lock": {"type": "string"}
+      }
+    }
+  }
+}

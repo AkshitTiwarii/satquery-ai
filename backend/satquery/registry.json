@@ -1,0 +1,544 @@
+{
+  "registry_version": "0.1.0",
+  "rows": [
+    {
+      "id": "preproc.reproject",
+      "task": "preprocess",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "optical",
+          "msi",
+          "sar",
+          "mixed"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 1,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF"
+        ]
+      },
+      "params_allowed": [
+        "target_crs",
+        "resampling"
+      ],
+      "outputs": [
+        "reprojected"
+      ],
+      "vram_mb": 0,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "preproc.db_normalise",
+      "task": "preprocess",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "sar"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 2,
+          "max": 2
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF"
+        ]
+      },
+      "params_allowed": [],
+      "outputs": [
+        "normalised"
+      ],
+      "vram_mb": 0,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "preproc.speckle_lee",
+      "task": "preprocess",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "sar"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 2,
+          "max": 2
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF"
+        ]
+      },
+      "params_allowed": [
+        "window"
+      ],
+      "outputs": [
+        "filtered"
+      ],
+      "vram_mb": 0,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "encode.rs_gsd",
+      "task": "encode",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "optical",
+          "msi",
+          "sar",
+          "mixed"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 1,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF",
+          "PNG",
+          "JPEG"
+        ]
+      },
+      "params_allowed": [
+        "gsd_m"
+      ],
+      "outputs": [
+        "embedding"
+      ],
+      "vram_mb": 400,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "zoom.crop",
+      "task": "preprocess",
+      "accepts": {
+        "n_images": 1,
+        "modality": [
+          "optical",
+          "msi",
+          "sar"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.05,
+          2.0
+        ],
+        "bands": {
+          "min": 1,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF",
+          "PNG",
+          "JPEG"
+        ]
+      },
+      "params_allowed": [
+        "rule_id",
+        "reason",
+        "margin",
+        "min_crop_px"
+      ],
+      "outputs": [
+        "crop_region"
+      ],
+      "vram_mb": 0,
+      "process": "in",
+      "shares_weights_with": "vqa.rs",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "vqa.rs",
+      "task": "vqa",
+      "accepts": {
+        "n_images": 1,
+        "modality": [
+          "optical",
+          "msi",
+          "sar"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 1,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF",
+          "PNG",
+          "JPEG"
+        ]
+      },
+      "params_allowed": [
+        "max_new_tokens"
+      ],
+      "outputs": [
+        "answer",
+        "confidence"
+      ],
+      "vram_mb": 2520,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "ground.rs",
+      "task": "grounding",
+      "accepts": {
+        "n_images": 1,
+        "modality": [
+          "optical",
+          "msi"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 3,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF",
+          "PNG",
+          "JPEG"
+        ]
+      },
+      "params_allowed": [
+        "max_new_tokens"
+      ],
+      "outputs": [
+        "answer",
+        "bbox",
+        "geojson",
+        "confidence"
+      ],
+      "vram_mb": 0,
+      "shares_weights_with": "vqa.rs",
+      "version": "0.1.0",
+      "process": "in",
+      "weights_sha256": null
+    },
+    {
+      "id": "caption.rs",
+      "task": "captioning",
+      "accepts": {
+        "n_images": 1,
+        "modality": [
+          "optical",
+          "msi",
+          "sar"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 1,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF",
+          "PNG",
+          "JPEG"
+        ]
+      },
+      "params_allowed": [
+        "max_new_tokens"
+      ],
+      "outputs": [
+        "answer",
+        "confidence"
+      ],
+      "vram_mb": 0,
+      "shares_weights_with": "vqa.rs",
+      "version": "0.1.0",
+      "process": "in",
+      "weights_sha256": null
+    },
+    {
+      "id": "change.vqa",
+      "task": "change_vqa",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "optical",
+          "msi"
+        ],
+        "requires_coregistration": true,
+        "requires_same_crs": true,
+        "requires_distinct_dates": true,
+        "gsd_range_m": [
+          0.3,
+          30.0
+        ],
+        "bands": {
+          "min": 3,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF",
+          "PNG",
+          "JPEG"
+        ]
+      },
+      "params_allowed": [
+        "change_threshold"
+      ],
+      "outputs": [
+        "answer",
+        "confidence",
+        "change_mask_geotiff",
+        "area_km2"
+      ],
+      "shares_weights_with": "vqa.rs",
+      "vram_mb": 2520,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "change.sar_logratio",
+      "task": "change_vqa",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "sar"
+        ],
+        "requires_coregistration": true,
+        "requires_same_crs": true,
+        "requires_distinct_dates": true,
+        "gsd_range_m": [
+          0.3,
+          30.0
+        ],
+        "bands": {
+          "min": 2,
+          "max": 2
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF"
+        ]
+      },
+      "params_allowed": [
+        "speckle_filter",
+        "change_threshold"
+      ],
+      "outputs": [
+        "answer",
+        "confidence",
+        "change_mask_geotiff",
+        "area_km2"
+      ],
+      "vram_mb": 0,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "fusion.optical_sar",
+      "task": "fusion",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "mixed"
+        ],
+        "requires_coregistration": true,
+        "requires_same_crs": true,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.3,
+          30.0
+        ],
+        "bands": {
+          "min": 2,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF"
+        ]
+      },
+      "params_allowed": [],
+      "outputs": [
+        "answer",
+        "confidence",
+        "geojson"
+      ],
+      "vram_mb": 200,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "export.geojson",
+      "task": "export",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "optical",
+          "msi",
+          "sar",
+          "mixed"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 1,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF"
+        ]
+      },
+      "params_allowed": [],
+      "outputs": [
+        "geojson"
+      ],
+      "vram_mb": 0,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "export.geotiff",
+      "task": "export",
+      "accepts": {
+        "n_images": 2,
+        "modality": [
+          "optical",
+          "msi",
+          "sar",
+          "mixed"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 1,
+          "max": 13
+        },
+        "formats": [
+          "GeoTIFF",
+          "TIFF"
+        ]
+      },
+      "params_allowed": [],
+      "outputs": [
+        "change_mask_geotiff"
+      ],
+      "vram_mb": 0,
+      "process": "in",
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    {
+      "id": "baseline.geochat",
+      "task": "vqa",
+      "accepts": {
+        "n_images": 1,
+        "modality": [
+          "optical",
+          "msi"
+        ],
+        "requires_coregistration": false,
+        "requires_same_crs": false,
+        "requires_distinct_dates": false,
+        "gsd_range_m": [
+          0.1,
+          60.0
+        ],
+        "bands": {
+          "min": 3,
+          "max": 3
+        },
+        "formats": [
+          "PNG",
+          "JPEG"
+        ]
+      },
+      "params_allowed": [
+        "max_new_tokens"
+      ],
+      "outputs": [
+        "answer",
+        "confidence"
+      ],
+      "vram_mb": 4500,
+      "process": "out",
+      "served": false,
+      "version": "0.1.0",
+      "weights_sha256": null
+    }
+  ]
+}

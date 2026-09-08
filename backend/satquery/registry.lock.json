@@ -1,0 +1,60 @@
+{
+  "rows": {
+    "baseline.geochat": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "caption.rs": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "change.sar_logratio": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "change.vqa": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "encode.rs_gsd": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "export.geojson": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "export.geotiff": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "fusion.optical_sar": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "ground.rs": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "preproc.db_normalise": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "preproc.reproject": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "preproc.speckle_lee": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "vqa.rs": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    },
+    "zoom.crop": {
+      "version": "0.1.0",
+      "weights_sha256": null
+    }
+  }
+}

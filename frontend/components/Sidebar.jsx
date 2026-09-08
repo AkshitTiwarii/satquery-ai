@@ -10,9 +10,9 @@ import {
   FolderIcon,
   FileText,
   Settings,
-  Asterisk,
 } from "lucide-react"
 import SidebarSection from "./SidebarSection"
+import UserAvatar from "./UserAvatar"
 import ConversationRow from "./ConversationRow"
 import FolderRow from "./FolderRow"
 import TemplateRow from "./TemplateRow"
@@ -44,11 +44,18 @@ export default function Sidebar({
   searchRef,
   createFolder,
   createNewChat,
+  onDeleteConversation,
+  onRenameConversation,
+  onClearAllConversations,
   templates = [],
   setTemplates = () => {},
   onUseTemplate = () => {},
   sidebarCollapsed = false,
   setSidebarCollapsed = () => {},
+  currentUser = null,
+  onOpenAuth = () => {},
+  onLogout = () => {},
+  onOpenAvatarPicker = () => {},
 }) {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false)
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false)
@@ -176,7 +183,7 @@ export default function Sidebar({
           </div>
 
           <div className="mt-auto flex flex-col items-center gap-2 pb-4">
-            <SettingsPopover>
+            <SettingsPopover onClearAllConversations={onClearAllConversations}>
               <button
                 className="rounded-xl p-2.5 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-zinc-800 transition-colors"
                 title="Settings"
@@ -215,25 +222,23 @@ export default function Sidebar({
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {(open || typeof window !== "undefined") && (
-          <motion.aside
-            key="sidebar"
-            initial={{ x: -340 }}
-            animate={{ x: open ? 0 : 0 }}
-            exit={{ x: -340 }}
-            transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            className={cls(
-              "z-50 flex h-full w-80 shrink-0 flex-col border-r border-zinc-200/60 bg-white dark:border-zinc-800 dark:bg-zinc-900",
-              "fixed inset-y-0 left-0 md:static md:translate-x-0",
-            )}
-          >
+      <aside
+        className={cls(
+          "z-50 flex h-full w-80 shrink-0 flex-col border-r border-zinc-200/60 bg-white dark:border-zinc-800 dark:bg-zinc-900 transition-transform duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 md:static md:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        )}
+      >
             <div className="flex items-center gap-2 border-b border-zinc-200/60 px-3 py-3 dark:border-zinc-800">
               <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-sm dark:from-zinc-200 dark:to-zinc-300 dark:text-zinc-900">
-                  <Asterisk className="h-4 w-4" />
+                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                  <img
+                    src="/icon.svg"
+                    alt="SatQuery AI Logo"
+                    className="h-full w-full object-cover scale-150"
+                  />
                 </div>
-                <div className="text-sm font-semibold tracking-tight">AI Assistant</div>
+                <div className="text-sm font-semibold tracking-tight">SatQuery AI</div>
               </div>
               <div className="ml-auto flex items-center gap-1">
                 <button
@@ -286,28 +291,27 @@ export default function Sidebar({
             </div>
 
             <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2 pb-4">
-              <SidebarSection
-                icon={<Star className="h-4 w-4" />}
-                title="PINNED CHATS"
-                collapsed={collapsed.pinned}
-                onToggle={() => setCollapsed((s) => ({ ...s, pinned: !s.pinned }))}
-              >
-                {pinned.length === 0 ? (
-                  <div className="select-none rounded-lg border border-dashed border-zinc-200 px-3 py-3 text-center text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                    Pin important threads for quick access.
-                  </div>
-                ) : (
-                  pinned.map((c) => (
+              {/* Render PINNED CHATS section only when conversations have been explicitly pinned by the user */}
+              {pinned.length > 0 && (
+                <SidebarSection
+                  icon={<Star className="h-4 w-4" />}
+                  title="PINNED CHATS"
+                  collapsed={collapsed.pinned}
+                  onToggle={() => setCollapsed((s) => ({ ...s, pinned: !s.pinned }))}
+                >
+                  {pinned.map((c) => (
                     <ConversationRow
                       key={c.id}
                       data={c}
                       active={c.id === selectedId}
                       onSelect={() => onSelect(c.id)}
                       onTogglePin={() => togglePin(c.id)}
+                      onDelete={() => onDeleteConversation?.(c.id)}
+                      onRename={(id, newTitle) => onRenameConversation?.(id, newTitle)}
                     />
-                  ))
-                )}
-              </SidebarSection>
+                  ))}
+                </SidebarSection>
+              )}
 
               <SidebarSection
                 icon={<Clock className="h-4 w-4" />}
@@ -327,6 +331,8 @@ export default function Sidebar({
                       active={c.id === selectedId}
                       onSelect={() => onSelect(c.id)}
                       onTogglePin={() => togglePin(c.id)}
+                      onDelete={() => onDeleteConversation?.(c.id)}
+                      onRename={(id, newTitle) => onRenameConversation?.(id, newTitle)}
                       showMeta
                     />
                   ))
@@ -356,6 +362,8 @@ export default function Sidebar({
                       selectedId={selectedId}
                       onSelect={onSelect}
                       togglePin={togglePin}
+                      onDeleteConversation={onDeleteConversation}
+                      onRenameConversation={onRenameConversation}
                       onDeleteFolder={handleDeleteFolder}
                       onRenameFolder={handleRenameFolder}
                     />
@@ -399,7 +407,13 @@ export default function Sidebar({
 
             <div className="mt-auto border-t border-zinc-200/60 px-3 py-3 dark:border-zinc-800">
               <div className="flex items-center gap-2">
-                <SettingsPopover>
+                <SettingsPopover
+                  currentUser={currentUser}
+                  onLogout={onLogout}
+                  onOpenAuth={onOpenAuth}
+                  onClearAllConversations={onClearAllConversations}
+                  onOpenAvatarPicker={onOpenAvatarPicker}
+                >
                   <button className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-zinc-800">
                     <Settings className="h-4 w-4" /> Settings
                   </button>
@@ -408,19 +422,54 @@ export default function Sidebar({
                   <ThemeToggle theme={theme} setTheme={setTheme} />
                 </div>
               </div>
-              <div className="mt-2 flex items-center gap-2 rounded-xl bg-zinc-50 p-2 dark:bg-zinc-800/60">
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-white dark:text-zinc-900">
-                  JD
+              {currentUser ? (
+                <div className="mt-2 flex items-center justify-between rounded-xl bg-zinc-100/70 p-2 dark:bg-zinc-800/60 transition-colors">
+                  <div
+                    onClick={onOpenAvatarPicker}
+                    className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-90 transition-opacity"
+                    title="Click to change avatar"
+                  >
+                    <UserAvatar avatarId={currentUser.avatarId || 1} name={currentUser.name} size={32} />
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                        {currentUser.name || currentUser.email}
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        <span>Neon DB Active</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onLogout}
+                    title="Sign Out"
+                    className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-200 hover:text-rose-600 dark:hover:bg-zinc-700 dark:hover:text-rose-400 transition-colors"
+                  >
+                    <span className="text-[11px] font-semibold">Exit</span>
+                  </button>
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">John Doe</div>
-                  <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">Pro workspace</div>
-                </div>
-              </div>
+              ) : (
+                <button
+                  onClick={onOpenAuth}
+                  className="mt-2 flex w-full items-center justify-between rounded-xl border border-indigo-500/20 bg-indigo-50/50 p-2 text-left hover:bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+                      +
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-indigo-900 dark:text-indigo-200">
+                        Sign In / Register
+                      </div>
+                      <div className="text-[10px] text-indigo-600 dark:text-indigo-400">
+                        Sync with Neon Database
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              )}
             </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+      </aside>
 
       <CreateFolderModal
         isOpen={showCreateFolderModal}

@@ -12,6 +12,8 @@ export default function FolderRow({
   selectedId,
   onSelect,
   togglePin,
+  onDeleteConversation,
+  onRenameConversation,
   onDeleteFolder,
   onRenameFolder,
 }) {
@@ -130,6 +132,8 @@ export default function FolderRow({
                   active={conversation.id === selectedId}
                   onSelect={() => onSelect(conversation.id)}
                   onTogglePin={() => togglePin(conversation.id)}
+                  onDelete={() => onDeleteConversation?.(conversation.id)}
+                  onRename={(id, newTitle) => onRenameConversation?.(id, newTitle)}
                   showMeta
                 />
               ))}

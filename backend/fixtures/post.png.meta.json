@@ -1,0 +1,10 @@
+{
+ "acquired_at": "2021-06-01T03:00:00Z",
+ "bands": 3,
+ "bbox": null,
+ "crs": null,
+ "gsd_m": 0.5,
+ "height": 512,
+ "width": 512,
+ "modality": "optical"
+}

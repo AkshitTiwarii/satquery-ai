@@ -1,241 +1,77 @@
-import { makeId } from "./utils"
+/**
+ * SatQuery AI (ISRO SIH26167)
+ * Authentic domain templates and folder taxonomy.
+ * Dead starter code removed.
+ */
 
-export const INITIAL_CONVERSATIONS = [
-  {
-    id: "c1",
-    title: "Marketing plan for launch",
-    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    messageCount: 12,
-    preview: "Drafting a 4-week GTM plan with channels, KPIs, and budget...",
-    pinned: true,
-    folder: "Work Projects",
-    messages: [
-      {
-        id: makeId("m"),
-        role: "user",
-        content: "Draft a 4-week GTM plan.",
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: makeId("m"),
-        role: "assistant",
-        content: "Sure — phases, owners, risks, and KPIs coming up.",
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000 + 60000).toISOString(),
-      },
-    ],
-  },
-  {
-    id: "c2",
-    title: "Research: vector databases vs RAG",
-    updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    messageCount: 22,
-    preview: "Compare pgvector, Milvus, and Weaviate. Cost + latency notes...",
-    pinned: false,
-    folder: "Code Reviews",
-    messages: [],
-  },
-  {
-    id: "c3",
-    title: "Trip checklist – Paris with family",
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    messageCount: 9,
-    preview: "Packing list, museum tickets, metro pass options, and cafés...",
-    pinned: false,
-    folder: "Personal",
-    messages: [],
-  },
-  {
-    id: "c4",
-    title: "Refactor prompt templates for support",
-    updatedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    messageCount: 17,
-    preview: "Turn macros into reusable templates with variables and guardrails...",
-    pinned: true,
-    folder: "Work Projects",
-    messages: [],
-  },
-  {
-    id: "c5",
-    title: "Bug triage notes",
-    updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    messageCount: 6,
-    preview: "Priorities: login rate limit, streaming flicker, retry policy...",
-    pinned: false,
-    folder: "Work Projects",
-    messages: [],
-  },
-  {
-    id: "c6",
-    title: "AI agent: inbox clean-up flow",
-    updatedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-    messageCount: 31,
-    preview: "Classifier → summarize → bulk actions with undo and logs...",
-    pinned: false,
-    folder: "Work Projects",
-    messages: [],
-  },
-  {
-    id: "c7",
-    title: "Weekly review – personal goals",
-    updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    messageCount: 8,
-    preview: "Sleep routine, gym cadence, reading list, dopamine detox...",
-    pinned: false,
-    folder: "Personal",
-    messages: [],
-  },
-  {
-    id: "c8",
-    title: "Code review: message composer",
-    updatedAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
-    messageCount: 14,
-    preview: "Edge cases: IME input, paste images, drag-n-drop, retries...",
-    pinned: false,
-    folder: "Code Reviews",
-    messages: [],
-  },
-  {
-    id: "c9",
-    title: "LLM evals – rubric + dataset",
-    updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    messageCount: 40,
-    preview: "BLEU vs human eval, task matrix, hallucination checks...",
-    pinned: false,
-    folder: "Work Projects",
-    messages: [],
-  },
-  {
-    id: "c10",
-    title: "Prompt library – onboarding",
-    updatedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    messageCount: 11,
-    preview: "Create intro prompts for HR, IT, and support with guardrails...",
-    pinned: false,
-    folder: "Work Projects",
-    messages: [],
-  },
-  {
-    id: "c11",
-    title: "Grocery budgeting – monthly",
-    updatedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
-    messageCount: 5,
-    preview: "Track cost per meal, reduce waste, and plan bulk buys...",
-    pinned: false,
-    folder: "Personal",
-    messages: [],
-  },
+export const INITIAL_FOLDERS = [
+  { id: "f1", name: "ISRO SIH26167 Missions" },
+  { id: "f2", name: "Optical & Multispectral Analysis" },
+  { id: "f3", name: "SAR & Microwave Grounding" },
+  { id: "f4", name: "Bi-Temporal Change Detection" },
 ]
 
 export const INITIAL_TEMPLATES = [
   {
     id: "t1",
-    name: "Bug Report",
-    content: `**Bug Report**
+    name: "Joint Optical + SAR Fusion (Rule R1)",
+    content: `**Joint Optical-SAR Fusion Analysis**
 
-**Description:**
-Brief description of the issue
+**Target Geographic Region:**
+[Specify coordinates or location name, e.g. Sundarbans or Delhi]
 
-**Steps to Reproduce:**
-1. Step one
-2. Step two
-3. Step three
+**Sensors & Modalities:**
+- Optical/MSI: Sentinel-2A (10m GSD) / Cartosat-2S
+- Radar/SAR: EOS-04 C-band SAR (VV/VH dual-pol)
 
-**Expected Behavior:**
-What should happen
-
-**Actual Behavior:**
-What actually happens
-
-**Environment:**
-- Browser/OS:
-- Version:
-- Additional context:`,
-    snippet: "Structured bug report template with steps to reproduce...",
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+**Analysis Query:**
+Use the optical and SAR images together to identify built-up structures and water-covered regions. Quantify areas in hectares and highlight corner reflectors.`,
+    snippet: "Cross-modal optical and SAR joint land-cover analysis template...",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: "t2",
-    name: "Daily Standup",
-    content: `**Daily Standup Update**
+    name: "Bi-Temporal Change Detection (Rule R3)",
+    content: `**Bi-Temporal Change Detection Query**
 
-**Yesterday:**
-- Completed task A
-- Made progress on task B
+**Baseline Observation (T1):** [e.g. 2024-11-12]
+**Current Observation (T2):** [e.g. 2025-11-15]
 
-**Today:**
-- Plan to work on task C
-- Continue with task B
+**Target Feature:**
+[Built-up infrastructure / Surface Water / Low Vegetation]
 
-**Blockers:**
-- None / List any blockers here
-
-**Notes:**
-Any additional context or updates`,
-    snippet: "Daily standup format with yesterday, today, and blockers...",
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+**Analysis Query:**
+Did the built-up area increase between the two observation dates? Delineate newly constructed footprints and report percentage delta.`,
+    snippet: "Multi-temporal pair change detection and urban growth quantification...",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: "t3",
-    name: "Code Review",
-    content: `**Code Review Checklist**
+    name: "Spatial Grounding & Localization (Rule R4)",
+    content: `**Text-Guided Spatial Grounding**
 
-**Scope:**
-What changes are being reviewed
+**Target Class:**
+[e.g. Water bodies, pastures, industrial facility, airport runway]
 
-**Key Areas to Focus:**
-- Logic correctness
-- Performance implications
-- Security considerations
-- Test coverage
-
-**Questions:**
-- Any specific concerns?
-- Performance impact?
-- Breaking changes?
-
-**Testing:**
-- Unit tests added/updated?
-- Manual testing completed?`,
-    snippet: "Comprehensive code review checklist and questions...",
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+**Analysis Query:**
+Where is the largest connected region of pastures? Highlight the bounding box coordinates [ymin, xmin, ymax, xmax] in normalized coordinates.`,
+    snippet: "Spatial bounding box extraction using fine-tuned LoRA grounding adapter...",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: "t4",
-    name: "Meeting Notes",
-    content: `**Meeting Notes - [Meeting Title]**
+    name: "High-Resolution Scene VQA (Rule R6)",
+    content: `**Single-Image Visual Question Answering**
 
-**Date:** [Date]
-**Attendees:** [List attendees]
+**Target Image:** [lr_232.tif or opt.tif]
 
-**Agenda:**
-1. Topic 1
-2. Topic 2
-3. Topic 3
-
-**Key Decisions:**
-- Decision 1
-- Decision 2
-
-**Action Items:**
-- [ ] Task 1 - @person - Due: [date]
-- [ ] Task 2 - @person - Due: [date]
-
-**Next Steps:**
-What happens next
-
-**Notes:**
-Additional context and discussion points`,
-    snippet: "Meeting notes template with agenda, decisions, and action items...",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+**Analysis Query:**
+Is there a road visible in the scene? What is the settlement density (rural vs urban)? Count distinct building footprints if resolvable at current GSD.`,
+    snippet: "Specialist VLM question-answering on high-resolution satellite imagery...",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
-]
-
-export const INITIAL_FOLDERS = [
-  { id: "f1", name: "Work Projects" },
-  { id: "f2", name: "Personal" },
-  { id: "f3", name: "Code Reviews" },
 ]

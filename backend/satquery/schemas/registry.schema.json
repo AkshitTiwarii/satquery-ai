@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SatQuery tool registry",
+  "description": "One object per capability. The dispatcher never calls a model directly - it queries this registry for rows whose declared preconditions the validated input satisfies, then executes. Adding a capability means dropping a module into tools.py and a row in here; if a change needs the dispatcher edited, the design has gone wrong.",
+  "type": "object",
+  "required": ["registry_version", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "registry_version": {"type": "string"},
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/row"}
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "required": ["id", "task", "accepts", "params_allowed", "outputs", "vram_mb", "process", "version", "weights_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z]+\\.[a-z0-9_]+$"},
+        "task": {
+          "type": "string",
+          "enum": ["preprocess", "encode", "vqa", "grounding", "captioning", "change_vqa", "fusion", "export"]
+        },
+        "accepts": {"$ref": "#/$defs/accepts"},
+        "params_allowed": {"type": "array", "items": {"type": "string"}},
+        "outputs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "vram_mb": {"type": "integer", "minimum": 0},
+        "process": {
+          "type": "string",
+          "enum": ["in", "out"],
+          "description": "'out' means a separate Python process. GeoChat needs transformers==4.31 and its own LLaVA fork; our stack needs >=4.49. Declaring the boundary here means the loader handles it instead of someone discovering it during the demo."
+        },
+        "served": {
+          "type": "boolean",
+          "description": "Absent means true. False keeps a row out of the served registry - baseline.geochat is development-only and must never reach the answer path."
+        },
+        "shares_weights_with": {
+          "type": "string",
+          "description": "Residency is keyed on weights, not on row id. vqa.rs, ground.rs and caption.rs are one resident model with different adapters; the loader must not triple-count them."
+        },
+        "version": {"type": "string"},
+        "weights_sha256": {
+          "type": ["string", "null"],
+          "description": "Pinned once real weights exist; null while the row is stubbed."
+        }
+      }
+    },
+    "accepts": {
+      "type": "object",
+      "required": ["n_images", "modality", "requires_coregistration", "requires_same_crs", "requires_distinct_dates", "gsd_range_m", "bands", "formats"],
+      "additionalProperties": false,
+      "properties": {
+        "n_images": {"type": "integer", "minimum": 1, "maximum": 2},
+        "modality": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["optical", "msi", "sar", "mixed"]}
+        },
+        "requires_coregistration": {"type": "boolean"},
+        "requires_same_crs": {"type": "boolean"},
+        "requires_distinct_dates": {"type": "boolean"},
+        "gsd_range_m": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"type": "number", "exclusiveMinimum": 0}
+        },
+        "bands": {
+          "type": "object",
+          "required": ["min", "max"],
+          "additionalProperties": false,
+          "properties": {
+            "min": {"type": "integer", "minimum": 1},
+            "max": {"type": "integer", "minimum": 1}
+          }
+        },
+        "formats": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["GeoTIFF", "TIFF", "PNG", "JPEG"]}
+        }
+      }
+    }
+  }
+}
