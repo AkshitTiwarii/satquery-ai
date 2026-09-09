@@ -66,31 +66,72 @@ if os.path.exists(_env_path):
     except Exception:
         pass
 
-REMOTE_GATEWAY_URL = os.environ.get("SATQUERY_REMOTE_URL", "").rstrip("/")
-REMOTE_GATEWAY_TOKEN = os.environ.get("SATQUERY_REMOTE_TOKEN", "").strip()
+def get_remote_gateway_config() -> tuple[str, str]:
+    """Dynamically load SATQUERY_REMOTE_URL and SATQUERY_REMOTE_TOKEN from environment or .env."""
+    _env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if os.path.exists(_env_path):
+        try:
+            with open(_env_path, "r", encoding="utf-8") as _ef:
+                for _line in _ef:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _v = _line.split("=", 1)
+                        os.environ[_k.strip()] = _v.strip()
+        except Exception:
+            pass
+    url = os.environ.get("SATQUERY_REMOTE_URL", "").rstrip("/")
+    token = os.environ.get("SATQUERY_REMOTE_TOKEN", "").strip()
+    return url, token
+
+
+REMOTE_GATEWAY_URL, REMOTE_GATEWAY_TOKEN = get_remote_gateway_config()
 _REMOTE_CACHE = {"timestamp": 0.0, "status": None}
 
 
-def check_remote_gpu_health() -> dict:
-    """Check if the high-power 4060 GPU gateway is online, with a short 5-second TTL cache."""
+def check_remote_gpu_health(force: bool = False) -> dict:
+    """Check if the high-power GPU gateway is online, with short TTL caching and detailed error diagnostics."""
+    url, token = get_remote_gateway_config()
     now = time.time()
-    if now - _REMOTE_CACHE["timestamp"] < 5.0 and _REMOTE_CACHE["status"] is not None:
+    if not force and now - _REMOTE_CACHE["timestamp"] < 3.0 and _REMOTE_CACHE["status"] is not None:
         return _REMOTE_CACHE["status"]
-    if not REMOTE_GATEWAY_URL:
-        return {"ok": False}
-    try:
-        resp = requests.get(f"{REMOTE_GATEWAY_URL}/health", timeout=2.5)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get("ok") and data.get("model_available"):
-                _REMOTE_CACHE["timestamp"] = now
-                _REMOTE_CACHE["status"] = data
-                return data
-    except Exception:
-        pass
+    if not url:
+        return {"ok": False, "model_available": False, "reason": "SATQUERY_REMOTE_URL not configured"}
+
+    headers = {"Accept": "application/json"}
+    if token:
+        headers["X-SatQuery-Token"] = token
+
+    last_err = None
+    for verify_ssl in (True, False):
+        try:
+            resp = requests.get(f"{url}/health", headers=headers, timeout=3.5, verify=verify_ssl)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("ok"):
+                    is_avail = bool(data.get("model_available") or data.get("backend") == "real")
+                    result = {
+                        **data,
+                        "model_available": is_avail,
+                        "remote_url": url,
+                    }
+                    _REMOTE_CACHE["timestamp"] = now
+                    _REMOTE_CACHE["status"] = result
+                    return result
+            else:
+                last_err = f"HTTP {resp.status_code}"
+        except Exception as exc:
+            last_err = f"{type(exc).__name__}: {exc}"
+            continue
+
+    status_fail = {
+        "ok": False,
+        "model_available": False,
+        "reason": last_err or "Unreachable",
+        "remote_url": url,
+    }
     _REMOTE_CACHE["timestamp"] = now
-    _REMOTE_CACHE["status"] = {"ok": False}
-    return {"ok": False}
+    _REMOTE_CACHE["status"] = status_fail
+    return status_fail
 
 
 def _json(handler, status: int, payload: dict) -> None:
@@ -191,6 +232,10 @@ class Handler(BaseHTTPRequestHandler):
                 "GET /traces/<id>": "a trace this process produced",
             }})
             return
+        if self.path == "/api/reconnect":
+            rem = check_remote_gpu_health(force=True)
+            _json(self, 200, rem)
+            return
         if self.path == "/health":
             rem = check_remote_gpu_health()
             if rem.get("ok") and rem.get("model_available"):
@@ -207,6 +252,7 @@ class Handler(BaseHTTPRequestHandler):
                 "dtype": models.dtype_name(),
                 "adapters": {k: models.adapter_name(k) for k in ("vqa", "ground", "change", "fusion")},
                 "mode": "local_fallback",
+                "remote_gpu": rem,
             })
             return
         if self.path.startswith("/bhoonidhi/archives"):
@@ -270,9 +316,34 @@ class Handler(BaseHTTPRequestHandler):
                 _json(self, 200, res)
             except Exception as exc:
                 _json(self, 500, {"error": f"Agent error: {exc}"})
+        if self.path == "/api/remote-gateway":
+            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+            except Exception:
+                _json(self, 400, {"error": "body is not valid JSON"})
+                return
+            new_url = body.get("url", "").strip().rstrip("/")
+            new_tok = body.get("token", "").strip()
+            if new_url:
+                os.environ["SATQUERY_REMOTE_URL"] = new_url
+                if new_tok:
+                    os.environ["SATQUERY_REMOTE_TOKEN"] = new_tok
+                _env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+                lines = []
+                if os.path.exists(_env_path):
+                    with open(_env_path, "r", encoding="utf-8") as f:
+                        lines = [l for l in f.readlines() if not l.startswith("SATQUERY_REMOTE_URL") and not l.startswith("SATQUERY_REMOTE_TOKEN")]
+                lines.append(f"SATQUERY_REMOTE_URL={new_url}\n")
+                if new_tok:
+                    lines.append(f"SATQUERY_REMOTE_TOKEN={new_tok}\n")
+                with open(_env_path, "w", encoding="utf-8") as f:
+                    f.writelines(lines)
+            rem = check_remote_gpu_health(force=True)
+            _json(self, 200, {"ok": True, "health": rem})
             return
         if self.path != "/answer":
-            _json(self, 404, {"error": "Unknown POST endpoint; supported: /answer, /agent, /bhoonidhi/search"})
+            _json(self, 404, {"error": "Unknown POST endpoint; supported: /answer, /agent, /bhoonidhi/search, /api/remote-gateway"})
             return
         if TOKEN and (self.headers.get("X-SatQuery-Token") or "").strip() != TOKEN:
             length = int(self.headers.get("Content-Length") or 0)

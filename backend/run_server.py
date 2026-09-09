@@ -43,7 +43,13 @@ if __name__ == "__main__":
 
     print("=" * 60)
     print(f">> SatQuery AI API starting on http://{args.host}:{args.port}")
-    print(f"   Mode: {args.backend} | Model Available: {models.available()}")
+    remote_h = api.check_remote_gpu_health(force=True)
+    if remote_h.get("ok") and remote_h.get("model_available"):
+        print(f"   Mode: {args.backend} | Remote GPU Gateway: ONLINE ({remote_h.get('remote_url')})")
+    else:
+        print(f"   Mode: {args.backend} | Local Model Available: {models.available()}")
+        if remote_h.get("remote_url"):
+            print(f"   Remote GPU ({remote_h.get('remote_url')}): {remote_h.get('reason')}")
     print("=" * 60, flush=True)
 
     server = api.serve(args.host, args.port)
