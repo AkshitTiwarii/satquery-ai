@@ -6,10 +6,6 @@ import { Label } from "./ui/label"
 import { Input } from "./ui/input"
 import { cn } from "@/lib/utils"
 import UserAvatar, { AVATARS } from "./UserAvatar"
-import {
-  IconBrandGithub,
-  IconBrandGoogle,
-} from "@tabler/icons-react"
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [mode, setMode] = useState("login") // 'login' | 'register'
@@ -73,10 +69,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     }
   }
 
-  const handleDemoSocialLogin = (provider) => {
-    setError(`Direct OAuth with ${provider} will link via your Neon Auth / Google Cloud identity provider. For now, sign in with email/password.`)
-  }
-
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -95,7 +87,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 12 }}
           transition={{ duration: 0.2 }}
-          className="shadow-input relative mx-auto w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 md:p-8 dark:border-neutral-800 dark:bg-black z-10"
+          className="shadow-input relative mx-auto w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-5 sm:p-7 dark:border-neutral-800 dark:bg-black z-10"
         >
           {/* Close button */}
           <button
@@ -215,7 +207,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                     <Label htmlFor="firstname">First name</Label>
                     <Input
                       id="firstname"
-                      placeholder="Akshit"
+                      placeholder="Aarav"
                       type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
@@ -225,7 +217,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                     <Label htmlFor="lastname">Last name</Label>
                     <Input
                       id="lastname"
-                      placeholder="Tiwari"
+                      placeholder="Sharma"
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
@@ -239,7 +231,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
-                placeholder="scientist@isro.gov.in"
+                placeholder="researcher@isro.gov.in"
                 type="email"
                 required
                 value={email}
@@ -281,33 +273,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 </>
               )}
             </button>
-
-            <div className="my-5 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
-
-            <div className="flex flex-col space-y-2.5">
-              <button
-                type="button"
-                onClick={() => handleDemoSocialLogin("GitHub")}
-                className="group/btn shadow-input relative flex h-9 w-full items-center justify-start space-x-2.5 rounded-md bg-neutral-50 px-3.5 font-medium text-black dark:bg-zinc-900 dark:shadow-[0px_0px_1px_1px_#262626] transition hover:bg-neutral-100 dark:hover:bg-zinc-800"
-              >
-                <IconBrandGithub className="h-4 w-4 text-neutral-800 dark:text-neutral-300" />
-                <span className="text-xs text-neutral-700 dark:text-neutral-300">
-                  Continue with GitHub
-                </span>
-                <BottomGradient />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoSocialLogin("Google")}
-                className="group/btn shadow-input relative flex h-9 w-full items-center justify-start space-x-2.5 rounded-md bg-neutral-50 px-3.5 font-medium text-black dark:bg-zinc-900 dark:shadow-[0px_0px_1px_1px_#262626] transition hover:bg-neutral-100 dark:hover:bg-zinc-800"
-              >
-                <IconBrandGoogle className="h-4 w-4 text-neutral-800 dark:text-neutral-300" />
-                <span className="text-xs text-neutral-700 dark:text-neutral-300">
-                  Continue with Google
-                </span>
-                <BottomGradient />
-              </button>
-            </div>
           </form>
 
           <p className="mt-4 text-center text-[11px] text-neutral-500 dark:text-neutral-400">
