@@ -375,13 +375,13 @@ export default function AIAssistantUI() {
       previewUrl: f.previewUrl,
     }))
 
-    // Only inherit files from immediate previous turn if the user explicitly refers to "in this image/scene"
-    // and does NOT ask for a new geographic region or catalog search
+    // Multi-turn conversational memory: inherit files for retry, image follow-ups, or ongoing conversation
+    const isRetry = /\b(retry|try again|re-?run|run again|do it again|repeat|once more|retry this|recompute|recheck|rerun)\b/i.test(text)
     const isExplicitImageReferral =
-      /\b(in this image|in that image|in the image|in this scene|in the scene|in this picture|in it)\b/i.test(text) &&
-      !/\b(imagery of|images of|scenes of|satellite data|search|show me imagery|passes for|over|near|around)\b/i.test(text)
+      /\b(in this image|in that image|in the image|in this scene|in the scene|in this picture|in it|here|these images|these files|this data|this scene|this imagery|this)\b/i.test(text)
+    const isNewGeoQuery = /\b(imagery of|images of|scenes of|satellite data|search|show me imagery|passes for|over|near|around)\b/i.test(text)
 
-    if (apiFiles.length === 0 && isExplicitImageReferral) {
+    if (apiFiles.length === 0 && !isNewGeoQuery) {
       const conv = conversations.find((c) => c.id === convId)
       const prevMsgWithFiles = (conv?.messages || [])
         .slice()
@@ -389,10 +389,12 @@ export default function AIAssistantUI() {
         .find((m) => m.apiFiles && m.apiFiles.length > 0)
 
       if (prevMsgWithFiles && prevMsgWithFiles.apiFiles?.length > 0) {
-        apiFiles = prevMsgWithFiles.apiFiles
-        apiFiles.forEach((f) => {
-          if (f.previewUrl) previewUrls[f.name] = f.previewUrl
-        })
+        if (isRetry || isExplicitImageReferral || !isNewGeoQuery) {
+          apiFiles = prevMsgWithFiles.apiFiles
+          apiFiles.forEach((f) => {
+            if (f.previewUrl) previewUrls[f.name] = f.previewUrl
+          })
+        }
       }
     }
 
@@ -434,17 +436,36 @@ export default function AIAssistantUI() {
     setThinkingConvId(convId)
 
     try {
+      const conv = conversations.find((c) => c.id === convId)
+      const historyTurns = (conv?.messages || []).slice(-6).map((m) => ({
+        role: m.role,
+        content: m.content,
+        files: (m.apiFiles || []).map((f) => ({ name: f.name, b64: f.b64 })),
+        task: m.trace?.classified_task,
+        query: m.trace?.query,
+      }))
+
       const trace = await sendSatQuery({
         query: text,
         files: apiFiles.map((f) => ({ name: f.name, b64: f.b64 })),
+        history: historyTurns,
       })
+
+      const resolvedPreviews = { ...previewUrls }
+      if (Array.isArray(trace.rendered_images)) {
+        trace.rendered_images.forEach((img) => {
+          if (img.name && (img.url?.startsWith("data:") || img.previewUrl?.startsWith("data:"))) {
+            resolvedPreviews[img.name] = img.url || img.previewUrl
+          }
+        })
+      }
 
       const asstMsg = {
         id: Math.random().toString(36).slice(2),
         role: "assistant",
         content: trace.output?.text || (trace.abstained ? trace.input_check?.message : "No text returned"),
         trace,
-        previewUrls,
+        previewUrls: resolvedPreviews,
         isLive: true,
         createdAt: new Date().toISOString(),
       }
@@ -455,13 +476,24 @@ export default function AIAssistantUI() {
       setConversations((prev) =>
         prev.map((c) => {
           if (c.id !== convId) return c
-          const msgs = [...(c.messages || []), asstMsg]
+          const msgs = (c.messages || []).map((m) => {
+            if (m.id === userMsg.id && m.files) {
+              return {
+                ...m,
+                files: m.files.map((f) => ({
+                  ...f,
+                  previewUrl: resolvedPreviews[f.name] || f.previewUrl,
+                })),
+              }
+            }
+            return m
+          })
           return {
             ...c,
             title: refinedTitle,
-            messages: msgs,
+            messages: [...msgs, asstMsg],
             updatedAt: new Date().toISOString(),
-            messageCount: msgs.length,
+            messageCount: msgs.length + 1,
             preview: asstMsg.content.slice(0, 80),
           }
         }),
@@ -512,9 +544,33 @@ export default function AIAssistantUI() {
 
   function resendMessage(convId, messageId) {
     const conv = conversations.find((c) => c.id === convId)
-    const msg = conv?.messages?.find((m) => m.id === messageId)
-    if (!msg) return
-    sendMessage(convId, msg.content)
+    if (!conv) return
+    const msgIndex = (conv.messages || []).findIndex((m) => m.id === messageId)
+    if (msgIndex === -1) return
+    const targetMsg = conv.messages[msgIndex]
+
+    let promptText = ""
+    let attachedFiles = []
+
+    if (targetMsg.role === "user") {
+      promptText = targetMsg.content
+      attachedFiles = targetMsg.apiFiles || []
+    } else {
+      // It's an assistant message: find the user query that triggered it
+      const prevUser = (conv.messages || [])
+        .slice(0, msgIndex)
+        .reverse()
+        .find((m) => m.role === "user")
+      if (prevUser) {
+        promptText = prevUser.content
+        attachedFiles = prevUser.apiFiles || []
+      } else {
+        promptText = targetMsg.content
+      }
+    }
+
+    if (!promptText) return
+    sendMessage(convId, { query: promptText, files: attachedFiles })
   }
 
   function pauseThinking() {

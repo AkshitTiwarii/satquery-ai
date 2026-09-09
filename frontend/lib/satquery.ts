@@ -405,6 +405,7 @@ export async function sendSatQuery(params: {
   files?: { name: string; b64: string }[]
   seed?: number
   agentic?: boolean
+  history?: any[]
 }): Promise<Trace> {
   const base = getSatQueryApiUrl().replace(/\/$/, "")
   const token = getSatQueryToken()
@@ -416,7 +417,7 @@ export async function sendSatQuery(params: {
     headers["X-SatQuery-Token"] = token
   }
 
-  const endpoint = (params.files && params.files.length > 0) ? `${base}/answer` : `${base}/agent`
+  const endpoint = params.agentic === false ? `${base}/answer` : `${base}/agent`
 
   const res = await fetch(endpoint, {
     method: "POST",
@@ -426,6 +427,7 @@ export async function sendSatQuery(params: {
       files: params.files || [],
       seed: params.seed ?? 1337,
       agentic: true,
+      history: params.history || [],
     }),
   })
 

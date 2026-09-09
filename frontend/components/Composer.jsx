@@ -73,7 +73,8 @@ const Composer = forwardRef(function Composer({ onSend, busy, messages = [] }, r
 
     for (const file of files) {
       const b64 = await fileToBase64(file)
-      const isImg = file.type.startsWith("image/") || file.name.endsWith(".tif") || file.name.endsWith(".tiff")
+      const isRasterTif = file.name.endsWith(".tif") || file.name.endsWith(".tiff")
+      const isImg = file.type.startsWith("image/") && !isRasterTif
       const previewUrl = isImg ? URL.createObjectURL(file) : undefined
 
       setAttachedFiles((prev) => [

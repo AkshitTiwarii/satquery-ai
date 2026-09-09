@@ -40,8 +40,16 @@ function SpatialGroundingCard({ normBox, trace, message, onInspect }) {
 
   if (!candidateImg || imageError) return null
 
-  const rawUrl = candidateImg.url || candidateImg.previewUrl || ""
-  const cleanUrl = rawUrl.replace(/\.tif+$/i, ".png")
+  const rawUrl = (
+    (candidateImg.url && candidateImg.url.startsWith("data:") ? candidateImg.url : null) ||
+    (candidateImg.previewUrl && candidateImg.previewUrl.startsWith("data:") ? candidateImg.previewUrl : null) ||
+    candidateImg.url ||
+    candidateImg.previewUrl ||
+    ""
+  )
+  const cleanUrl = rawUrl.startsWith("data:")
+    ? rawUrl
+    : (rawUrl.startsWith("/") || rawUrl.startsWith("http") || rawUrl.startsWith("blob:") ? rawUrl : `/fixtures/${rawUrl.replace(/\.tif+$/i, ".png")}`)
   const sceneName = candidateImg.name || "Satellite Observation Scene"
   const featureName = trace?.output?.quantities?.feature_localized || "Target Feature"
 
@@ -409,71 +417,79 @@ function InteractiveImageryViewer({
     activeImg = renderedImages[0]
   }
 
-  const resolvedImgUrl = (
-    message?.previewUrls?.[activeImg.name] ||
-    message?.files?.find((f) => f.name === activeImg.name)?.previewUrl ||
-    activeImg.previewUrl ||
+  const rawUrl = (
+    (activeImg.url && activeImg.url.startsWith("data:") ? activeImg.url : null) ||
+    (activeImg.previewUrl && activeImg.previewUrl.startsWith("data:") ? activeImg.previewUrl : null) ||
+    (message?.previewUrls?.[activeImg.name] && message.previewUrls[activeImg.name].startsWith("data:") ? message.previewUrls[activeImg.name] : null) ||
+    (message?.files?.find((f) => f.name === activeImg.name)?.previewUrl && message.files.find((f) => f.name === activeImg.name).previewUrl.startsWith("data:") ? message.files.find((f) => f.name === activeImg.name).previewUrl : null) ||
     activeImg.url ||
+    activeImg.previewUrl ||
+    message?.previewUrls?.[activeImg.name] ||
     ""
-  ).replace(/\.tif+$/i, ".png")
+  )
+  const resolvedImgUrl = rawUrl.startsWith("data:")
+    ? rawUrl
+    : (rawUrl.startsWith("/") || rawUrl.startsWith("http") || rawUrl.startsWith("blob:") ? rawUrl : `/fixtures/${rawUrl.replace(/\.tif+$/i, ".png")}`)
 
   const showHighlights = (selectedLayer === "fused" || selectedLayer === "optical") && selectedEpoch === "after"
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-zinc-950 p-4 shadow-sm dark:border-zinc-800/90 backdrop-blur-md">
       {/* Top Floating Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-zinc-800/80">
-        {/* Epoch Toggles: Before / After */}
-        {imageryViewer?.epochs && (
-          <div className="inline-flex rounded-xl bg-zinc-900/90 p-0.5 border border-zinc-800">
-            {imageryViewer.epochs.map((ep) => (
-              <button
-                key={ep.id}
-                type="button"
-                onClick={() => setSelectedEpoch(ep.id)}
-                className={cls(
-                  "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
-                  selectedEpoch === ep.id
-                    ? "bg-teal-600 text-white shadow-xs"
-                    : "text-zinc-400 hover:text-zinc-200"
-                )}
-              >
-                {ep.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Imagery Layer Radios */}
-        {imageryViewer?.layers && (
-          <div className="flex items-center gap-1.5 rounded-xl bg-zinc-900/90 p-1 border border-zinc-800 text-xs">
-            <span className="text-zinc-400 font-medium px-1.5 text-[11px]">Imagery layer:</span>
-            {imageryViewer.layers.map((lay) => (
-              <button
-                key={lay.id}
-                type="button"
-                onClick={() => setSelectedLayer(lay.id)}
-                className={cls(
-                  "flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium transition-all",
-                  selectedLayer === lay.id
-                    ? "bg-zinc-800 text-teal-400 border border-teal-500/40 shadow-xs"
-                    : "text-zinc-400 hover:text-zinc-200"
-                )}
-              >
-                <span
+      {((imageryViewer?.epochs && imageryViewer.epochs.length > 1) || (imageryViewer?.layers && imageryViewer.layers.length > 1)) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-zinc-800/80">
+          {/* Epoch Toggles: Before / After */}
+          {imageryViewer?.epochs && imageryViewer.epochs.length > 1 && (
+            <div className="inline-flex rounded-xl bg-zinc-900/90 p-0.5 border border-zinc-800">
+              {imageryViewer.epochs.map((ep) => (
+                <button
+                  key={ep.id}
+                  type="button"
+                  onClick={() => setSelectedEpoch(ep.id)}
                   className={cls(
-                    "h-2 w-2 rounded-full border",
-                    selectedLayer === lay.id
-                      ? "border-teal-400 bg-teal-400"
-                      : "border-zinc-500"
+                    "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
+                    selectedEpoch === ep.id
+                      ? "bg-teal-600 text-white shadow-xs"
+                      : "text-zinc-400 hover:text-zinc-200"
                   )}
-                />
-                {lay.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+                >
+                  {ep.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Imagery Layer Radios */}
+          {imageryViewer?.layers && imageryViewer.layers.length > 1 && (
+            <div className="flex items-center gap-1.5 rounded-xl bg-zinc-900/90 p-1 border border-zinc-800 text-xs">
+              <span className="text-zinc-400 font-medium px-1.5 text-[11px]">Imagery layer:</span>
+              {imageryViewer.layers.map((lay) => (
+                <button
+                  key={lay.id}
+                  type="button"
+                  onClick={() => setSelectedLayer(lay.id)}
+                  className={cls(
+                    "flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium transition-all",
+                    selectedLayer === lay.id
+                      ? "bg-zinc-800 text-teal-400 border border-teal-500/40 shadow-xs"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  )}
+                >
+                  <span
+                    className={cls(
+                      "h-2 w-2 rounded-full border",
+                      selectedLayer === lay.id
+                        ? "border-teal-400 bg-teal-400"
+                        : "border-zinc-500"
+                    )}
+                  />
+                  {lay.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main Satellite Viewport with Overlays */}
       <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-black border border-zinc-800 group">
@@ -481,6 +497,21 @@ function InteractiveImageryViewer({
           src={resolvedImgUrl}
           alt={activeImg.name || "Satellite scene"}
           style={{ transform: `scale(${zoomLevel})` }}
+          onError={(e) => {
+            const target = e.currentTarget
+            if (target.src.startsWith("data:")) return
+            const n = (activeImg.name || "").toLowerCase()
+            if (target.src.includes("/fixtures/opt.png") || target.src.includes("/fixtures/sar.png") || target.src.includes("/fixtures/pre.png") || target.src.includes("/fixtures/post.png")) return
+            if (n === "sar.tif" || n === "sar.png") {
+              target.src = "/fixtures/sar.png"
+            } else if (n === "opt.tif" || n === "opt.png") {
+              target.src = "/fixtures/opt.png"
+            } else if (n === "pre.tif" || n === "pre.png") {
+              target.src = "/fixtures/pre.png"
+            } else if (n === "post.tif" || n === "post.png") {
+              target.src = "/fixtures/post.png"
+            }
+          }}
           className="h-full w-full object-cover transition-transform duration-300 select-none"
         />
 
@@ -1102,13 +1133,19 @@ function AssistantMessageItem({ message, onRetry }) {
                 {/* Imagery Grid - Completely Clean & Unobstructed */}
                 <div className={`grid gap-3 ${trace.rendered_images.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
                   {trace.rendered_images.map((img, i) => {
-                    const resolvedImgUrl = (
-                      message.previewUrls?.[img.name] ||
-                      message.files?.find((f) => f.name === img.name)?.previewUrl ||
-                      img.previewUrl ||
+                    const rawUrl = (
+                      (img.url && img.url.startsWith("data:") ? img.url : null) ||
+                      (img.previewUrl && img.previewUrl.startsWith("data:") ? img.previewUrl : null) ||
+                      (message?.previewUrls?.[img.name] && message.previewUrls[img.name].startsWith("data:") ? message.previewUrls[img.name] : null) ||
+                      (message?.files?.find((f) => f.name === img.name)?.previewUrl && message.files.find((f) => f.name === img.name).previewUrl.startsWith("data:") ? message.files.find((f) => f.name === img.name).previewUrl : null) ||
                       img.url ||
+                      img.previewUrl ||
+                      message?.previewUrls?.[img.name] ||
                       ""
-                    ).replace(/\.tif+$/i, ".png")
+                    )
+                    const resolvedImgUrl = rawUrl.startsWith("data:")
+                      ? rawUrl
+                      : (rawUrl.startsWith("/") || rawUrl.startsWith("http") || rawUrl.startsWith("blob:") ? rawUrl : `/fixtures/${rawUrl.replace(/\.tif+$/i, ".png")}`)
 
                     return (
                       <div
@@ -1121,6 +1158,21 @@ function AssistantMessageItem({ message, onRetry }) {
                           <img
                             src={resolvedImgUrl}
                             alt={img.name || img.label || `Satellite pass ${i + 1}`}
+                            onError={(e) => {
+                              const target = e.currentTarget
+                              if (target.src.startsWith("data:")) return
+                              const n = (img.name || "").toLowerCase()
+                              if (target.src.includes("/fixtures/opt.png") || target.src.includes("/fixtures/sar.png") || target.src.includes("/fixtures/pre.png") || target.src.includes("/fixtures/post.png")) return
+                              if (n === "sar.tif" || n === "sar.png") {
+                                target.src = "/fixtures/sar.png"
+                              } else if (n === "opt.tif" || n === "opt.png") {
+                                target.src = "/fixtures/opt.png"
+                              } else if (n === "pre.tif" || n === "pre.png") {
+                                target.src = "/fixtures/pre.png"
+                              } else if (n === "post.tif" || n === "post.png") {
+                                target.src = "/fixtures/post.png"
+                              }
+                            }}
                             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-103"
                           />
                           {/* Minimal Expand Icon on Hover */}
