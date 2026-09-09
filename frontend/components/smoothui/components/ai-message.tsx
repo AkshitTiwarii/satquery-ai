@@ -145,14 +145,16 @@ const AIMessage = ({
 
       {avatar ? <div className="mt-0.5 shrink-0">{avatar}</div> : null}
 
-      <div className={cn("flex min-w-0 flex-col gap-1", isUser && "items-end")}>
+      <div className={cn("flex min-w-0 flex-col gap-1", isUser ? "items-end" : "w-full flex-1")}>
         <div
           className={cn(
-            "w-fit max-w-prose text-sm leading-relaxed",
-            bubble && "rounded-2xl px-4 py-3",
-            bubble && isUser && "rounded-br-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm",
-            bubble && !isUser && "rounded-bl-md bg-zinc-100 text-zinc-900 border border-zinc-200/80 dark:bg-zinc-900/90 dark:text-zinc-100 dark:border-zinc-800/80 shadow-sm",
-            !bubble && "text-zinc-900 dark:text-zinc-100"
+            isUser
+              ? "w-fit max-w-xl text-[14px] leading-relaxed"
+              : "w-full text-[14.5px] sm:text-[15px] leading-relaxed",
+            bubble && "rounded-2xl",
+            bubble && isUser && "px-4.5 py-3 rounded-2xl rounded-br-sm bg-zinc-800 text-zinc-100 dark:bg-[#28272b] dark:text-[#f4f4f5] border border-zinc-700/50 shadow-sm",
+            bubble && !isUser && "p-4 sm:p-5 rounded-2xl bg-zinc-50/70 text-zinc-900 border border-zinc-200/80 dark:bg-zinc-900/60 dark:text-zinc-100 dark:border-zinc-800/80 shadow-xs",
+            !bubble && "w-full p-0 border-0 bg-transparent text-zinc-900 dark:text-zinc-100"
           )}
         >
           {children}

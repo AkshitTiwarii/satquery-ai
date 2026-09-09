@@ -28,7 +28,7 @@ export default function Header({
   ]
 
   const isOnline = backendHealth?.ok
-  const isGpuActive = backendHealth?.mode === "remote_gpu_active" || backendHealth?.backend === "real"
+  const isGpuActive = backendHealth?.mode === "remote_gpu_active" || backendHealth?.backend === "real" || Boolean(backendHealth?.model_available)
 
   const userInitials = currentUser?.name
     ? currentUser.name

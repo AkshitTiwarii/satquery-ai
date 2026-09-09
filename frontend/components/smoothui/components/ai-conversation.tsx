@@ -58,10 +58,44 @@ const AIConversation = ({
     setIsPinned(true);
   }, []);
 
+  const isFirstMountRef = useRef(true);
+  const prevContentKeyRef = useRef(contentKey);
+
   useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const prevKeyStr = String(prevContentKeyRef.current || "");
+    const currKeyStr = String(contentKey || "");
+    const prevConvId = prevKeyStr.split("-")[0];
+    const currConvId = currKeyStr.split("-")[0];
+    const isConvSwitch = prevConvId !== currConvId;
+
+    if (isFirstMountRef.current || isConvSwitch) {
+      // Instantly position at the bottom without any visible scrolling from the top
+      viewport.scrollTop = viewport.scrollHeight;
+      setIsPinned(true);
+      isFirstMountRef.current = false;
+      prevContentKeyRef.current = contentKey;
+
+      // Ensure any subsequent font/image reflows keep it pinned at bottom without scrolling from top
+      const raf = requestAnimationFrame(() => {
+        if (viewport) viewport.scrollTop = viewport.scrollHeight;
+      });
+      const t = setTimeout(() => {
+        if (viewport) viewport.scrollTop = viewport.scrollHeight;
+      }, 50);
+
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout(t);
+      };
+    }
+
     if (isPinned) {
       scrollToBottom(shouldReduceMotion ? "auto" : "smooth");
     }
+    prevContentKeyRef.current = contentKey;
   }, [contentKey, isPinned, scrollToBottom, shouldReduceMotion]);
 
   useEffect(() => {
@@ -79,7 +113,7 @@ const AIConversation = ({
   return (
     <div className={cn("relative min-h-0 w-full", className)}>
       <div
-        className="h-full overflow-y-auto overscroll-contain"
+        className="h-full overflow-y-auto overscroll-contain no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         onScroll={measure}
         ref={viewportRef}
       >

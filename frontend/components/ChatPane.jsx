@@ -194,158 +194,193 @@ function SpatialGroundingCard({ normBox, trace, message, onInspect }) {
   )
 }
 
-function AssessmentPanel({ assessment }) {
+function AssessmentPanel({ assessment, defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   if (!assessment) return null
 
   const isWarning = assessment.advisory_level === "warning"
   const isSuccess = assessment.advisory_level === "success"
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50/70 p-4 shadow-sm dark:border-zinc-800/80 dark:from-zinc-900/90 dark:to-zinc-950/90 backdrop-blur-md">
-      {/* Assessment Header */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-200/60 dark:border-zinc-800/60">
-        <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/10 text-sky-500 dark:bg-sky-500/20">
-            <BarChart3 className="h-3.5 w-3.5" />
+    <div className="w-full overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-50/70 dark:border-zinc-800/80 dark:bg-zinc-900/40 transition-all duration-200">
+      {/* Assessment Header / Toggle */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-500/10 text-sky-500 dark:bg-sky-500/20 shrink-0">
+            <BarChart3 className="h-3 w-3" />
           </div>
-          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
-            Assessment
+          <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+            Assessment: {assessment.headline || "Geospatial Analysis"}
           </span>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 shadow-xs">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Completed
-        </span>
-      </div>
-
-      {/* Bold Headline */}
-      <h3 className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-1.5">
-        {assessment.headline}
-      </h3>
-
-      {/* 2-line Summary */}
-      <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-300 mb-4">
-        {assessment.summary}
-      </p>
-
-      {/* 3-Column Contextual Metric Cards */}
-      {assessment.metrics && assessment.metrics.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3.5">
-          {assessment.metrics.map((m, idx) => (
-            <div
-              key={idx}
-              title={m.tooltip}
-              className="group relative flex flex-col justify-between rounded-xl border border-zinc-200/70 bg-zinc-100/50 p-3 transition-all duration-200 hover:border-sky-500/40 hover:bg-zinc-100/80 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-sky-500/40 dark:hover:bg-zinc-900/80"
-            >
-              <div className="flex items-center gap-2 mb-1 text-zinc-900 dark:text-zinc-100 font-bold text-lg">
-                {m.icon === "sprout" || m.icon === "leaf" ? (
-                  <Sprout className="h-4 w-4 text-emerald-500 shrink-0" />
-                ) : m.icon === "shield" ? (
-                  <ShieldCheck className="h-4 w-4 text-sky-500 shrink-0" />
-                ) : m.icon === "crosshair" ? (
-                  <Crosshair className="h-4 w-4 text-sky-500 shrink-0" />
-                ) : m.icon === "layers" ? (
-                  <Layers className="h-4 w-4 text-indigo-400 shrink-0" />
-                ) : m.icon === "satellite" ? (
-                  <Satellite className="h-4 w-4 text-sky-400 shrink-0" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                )}
-                <span>{m.value}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                <span>{m.label}</span>
-                <HelpCircle className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Completed
+          </span>
+          <ChevronDown
+            className={cls(
+              "h-3.5 w-3.5 text-zinc-400 transition-transform duration-200",
+              isOpen ? "rotate-180" : "",
+            )}
+          />
         </div>
-      )}
+      </button>
 
-      {/* Actionable Advisory Banner */}
-      {assessment.advisory && (
-        <div
-          className={cls(
-            "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium border",
-            isWarning
-              ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-              : isSuccess
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400"
+      {/* Expanded Details */}
+      {isOpen && (
+        <div className="p-4 sm:p-5 border-t border-zinc-200/60 dark:border-zinc-800/60 space-y-3.5 animate-in fade-in">
+          {/* Bold Headline */}
+          <h3 className="text-sm sm:text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            {assessment.headline}
+          </h3>
+
+          {/* 2-line Summary */}
+          <p className="text-xs sm:text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">
+            {assessment.summary}
+          </p>
+
+          {/* 3-Column Contextual Metric Cards */}
+          {assessment.metrics && assessment.metrics.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+              {assessment.metrics.map((m, idx) => (
+                <div
+                  key={idx}
+                  title={m.tooltip}
+                  className="group relative flex flex-col justify-between rounded-xl border border-zinc-200/70 bg-zinc-100/50 p-3 transition-all duration-200 hover:border-sky-500/40 hover:bg-zinc-100/80 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-sky-500/40 dark:hover:bg-zinc-900/80"
+                >
+                  <div className="flex items-center gap-2 mb-1 text-zinc-900 dark:text-zinc-100 font-bold text-lg">
+                    {m.icon === "sprout" || m.icon === "leaf" ? (
+                      <Sprout className="h-4 w-4 text-emerald-500 shrink-0" />
+                    ) : m.icon === "shield" ? (
+                      <ShieldCheck className="h-4 w-4 text-sky-500 shrink-0" />
+                    ) : m.icon === "crosshair" ? (
+                      <Crosshair className="h-4 w-4 text-sky-500 shrink-0" />
+                    ) : m.icon === "layers" ? (
+                      <Layers className="h-4 w-4 text-indigo-400 shrink-0" />
+                    ) : m.icon === "satellite" ? (
+                      <Satellite className="h-4 w-4 text-sky-400 shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    )}
+                    <span>{m.value}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                    <span>{m.label}</span>
+                    <HelpCircle className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        >
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span>{assessment.advisory}</span>
+
+          {/* Actionable Advisory Banner */}
+          {assessment.advisory && (
+            <div
+              className={cls(
+                "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium border",
+                isWarning
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  : isSuccess
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400"
+              )}
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{assessment.advisory}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function WorkflowLogPanel({ workflowLog, onExportReport, onViewEvidence }) {
+function WorkflowLogPanel({ workflowLog, onExportReport, onViewEvidence, defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   if (!workflowLog || workflowLog.length === 0) return null
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50/70 p-4 shadow-sm dark:border-zinc-800/80 dark:from-zinc-900/90 dark:to-zinc-950/90 backdrop-blur-md">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-200/60 dark:border-zinc-800/60">
-        <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-500/10 text-zinc-600 dark:text-zinc-400">
-            <Settings2 className="h-3.5 w-3.5" />
+    <div className="w-full overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-50/70 dark:border-zinc-800/80 dark:bg-zinc-900/40 transition-all duration-200">
+      {/* Header / Toggle */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 shrink-0">
+            <Settings2 className="h-3 w-3" />
           </div>
-          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-            Workflow log
+          <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+            Workflow execution log ({workflowLog.length} steps)
           </span>
         </div>
-        <span className="text-[11px] font-mono text-zinc-400 dark:text-zinc-500">
-          Triggered by your question
-        </span>
-      </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className="text-[10.5px] font-mono text-zinc-400 dark:text-zinc-500">
+            Triggered by query
+          </span>
+          <ChevronDown
+            className={cls(
+              "h-3.5 w-3.5 text-zinc-400 transition-transform duration-200",
+              isOpen ? "rotate-180" : "",
+            )}
+          />
+        </div>
+      </button>
 
-      {/* Stepper */}
-      <div className="space-y-3 mb-4">
-        {workflowLog.map((step) => (
-          <div key={step.step_num} className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5 min-w-0">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-sky-500 dark:bg-sky-500/20 text-[10px] font-bold mt-0.5 border border-sky-500/30">
-                {step.step_num}
-              </span>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                  {step.name}
-                </span>
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
-                  {step.description}
+      {/* Stepper Details */}
+      {isOpen && (
+        <div className="p-4 sm:p-5 border-t border-zinc-200/60 dark:border-zinc-800/60 space-y-4 animate-in fade-in">
+          <div className="space-y-3">
+            {workflowLog.map((step) => (
+              <div key={step.step_num} className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-sky-500 dark:bg-sky-500/20 text-[10px] font-bold mt-0.5 border border-sky-500/30">
+                    {step.step_num}
+                  </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                      {step.name}
+                    </span>
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                      {step.description}
+                    </span>
+                  </div>
+                </div>
+                <span className="flex items-center gap-1 shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <Check className="h-3 w-3" />
+                  Completed {step.duration_str}
                 </span>
               </div>
-            </div>
-            <span className="flex items-center gap-1 shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <Check className="h-3 w-3" />
-              Completed {step.duration_str}
-            </span>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Actions Row */}
-      <div className="flex items-center gap-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-800/60">
-        <button
-          type="button"
-          onClick={onExportReport}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200/80 bg-zinc-100/60 hover:bg-zinc-200/60 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-800/80 px-3 py-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors"
-        >
-          <FileText className="h-3.5 w-3.5 text-zinc-500" />
-          <span>Export report ⌄</span>
-        </button>
-        <button
-          type="button"
-          onClick={onViewEvidence}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 px-3 py-2 text-xs font-medium text-sky-600 dark:text-sky-400 transition-colors"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          <span>View evidence</span>
-        </button>
-      </div>
+          {/* Actions Row */}
+          <div className="flex items-center gap-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-800/60">
+            <button
+              type="button"
+              onClick={onExportReport}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200/80 bg-zinc-100/60 hover:bg-zinc-200/60 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-800/80 px-3 py-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors cursor-pointer"
+            >
+              <FileText className="h-3.5 w-3.5 text-zinc-500" />
+              <span>Export report ⌄</span>
+            </button>
+            <button
+              type="button"
+              onClick={onViewEvidence}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 px-3 py-2 text-xs font-medium text-sky-600 dark:text-sky-400 transition-colors cursor-pointer"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span>View evidence</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -571,13 +606,8 @@ function CognitiveTraceView({
   thinkingSeconds = 0,
 }) {
   const [exploredOpen, setExploredOpen] = useState(false)
-  const [thoughtOpen, setThoughtOpen] = useState(true)
-
-  useEffect(() => {
-    if (isThinkingPhase) {
-      setThoughtOpen(true)
-    }
-  }, [isThinkingPhase])
+  const [thoughtOpen, setThoughtOpen] = useState(false)
+  const [stepsOpen, setStepsOpen] = useState(false)
 
   const exploredItems = React.useMemo(() => {
     if (trace?.exploration && Array.isArray(trace.exploration) && trace.exploration.length > 0) {
@@ -786,42 +816,61 @@ function CognitiveTraceView({
       </div>
 
       {steps && steps.length > 0 && (
-        <div className="pt-2 border-t border-border/50 flex flex-col gap-1.5">
-          <div className="text-[11px] font-semibold text-muted-foreground mb-0.5">Agent Actions & Tool Invocations:</div>
-          {steps.map((step, idx) => {
-            const status = phase === "thinking" ? "running" : "success"
-            const durationStr =
-              step.duration_ms != null
-                ? step.duration_ms < 1
-                  ? `${(step.duration_ms * 1000).toFixed(0)}µs`
-                  : `${step.duration_ms.toFixed(1)}ms`
-                : step.cache
-                  ? `cache ${step.cache}`
-                  : undefined
+        <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/50 dark:border-zinc-800/80 dark:bg-zinc-950/60 overflow-hidden transition-all duration-200">
+          <button
+            type="button"
+            onClick={() => setStepsOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-1.5">
+              <span>Agent Actions & Tool Invocations ({steps.length} steps)</span>
+            </div>
+            <ChevronDown
+              className={cls(
+                "h-3.5 w-3.5 text-zinc-400 transition-transform duration-200",
+                stepsOpen ? "rotate-0" : "-rotate-90",
+              )}
+            />
+          </button>
 
-            return (
-              <AIToolCall
-                key={`${step.tool}-${idx}`}
-                name={step.tool}
-                status={status}
-                summary={durationStr}
-                args={
-                  step.params && Object.keys(step.params).length > 0 ? (
-                    <code>{JSON.stringify(step.params, null, 2)}</code>
-                  ) : (
-                    <span>Default parameters</span>
-                  )
-                }
-                result={
-                  step.confidence != null ? (
-                    <span>Confidence: {(step.confidence * 100).toFixed(1)}%</span>
-                  ) : (
-                    <span>{step.stub ? "Verified execution (stub pipeline)" : "Completed"}</span>
-                  )
-                }
-              />
-            )
-          })}
+          {stepsOpen && (
+            <div className="px-3 pb-3 pt-1 border-t border-zinc-200/50 dark:border-zinc-800/60 flex flex-col gap-1.5">
+              {steps.map((step, idx) => {
+                const status = phase === "thinking" ? "running" : "success"
+                const durationStr =
+                  step.duration_ms != null
+                    ? step.duration_ms < 1
+                      ? `${(step.duration_ms * 1000).toFixed(0)}µs`
+                      : `${step.duration_ms.toFixed(1)}ms`
+                    : step.cache
+                      ? `cache ${step.cache}`
+                      : undefined
+
+                return (
+                  <AIToolCall
+                    key={`${step.tool}-${idx}`}
+                    name={step.tool}
+                    status={status}
+                    summary={durationStr}
+                    args={
+                      step.params && Object.keys(step.params).length > 0 ? (
+                        <code>{JSON.stringify(step.params, null, 2)}</code>
+                      ) : (
+                        <span>Default parameters</span>
+                      )
+                    }
+                    result={
+                      step.confidence != null ? (
+                        <span>Confidence: {(step.confidence * 100).toFixed(1)}%</span>
+                      ) : (
+                        <span>{step.stub ? "Verified execution (stub pipeline)" : "Completed"}</span>
+                      )
+                    }
+                  />
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -958,18 +1007,19 @@ function AssistantMessageItem({ message, onRetry }) {
   return (
     <AIMessage
       avatar={<SiriOrb size="26px" state={phase} />}
+      bubble={false}
       copyText={fullText}
       from="assistant"
       onRetry={() => onRetry?.(message.id)}
       timestamp={timestamp}
     >
-      <div className="flex flex-col gap-3 min-w-0">
-        {/* 1. Reasoning Trace & Autonomous Tool Execution (Collapsible) */}
+      <div className="flex flex-col gap-3 min-w-0 w-full">
+        {/* 1. Reasoning Trace & Autonomous Tool Execution (Collapsible - Collapsed by default) */}
         {trace && (
           <AIReasoning
             isStreaming={phase === "thinking"}
-            collapseWhenDone={false}
-            defaultOpen={true}
+            collapseWhenDone={true}
+            defaultOpen={false}
           >
             <CognitiveTraceView
               trace={trace}
@@ -985,14 +1035,21 @@ function AssistantMessageItem({ message, onRetry }) {
           </AIReasoning>
         )}
 
-        {/* 3. The Actual Answer / Response */}
+        {/* 2. The Actual Answer / Response - Clean text front and center like Claude */}
         {phase === "thinking" ? (
           <AILoader label="Synthesizing geospatial intelligence..." showElapsed variant="dots" />
         ) : (
-          <div className="space-y-3">
-            {/* Dynamic Assessment Panel (Headline, 2-line summary, 3 KPI cards, advisory banner) */}
+          <div className="space-y-4">
+            {/* Markdown Text Response (Prominent and unhindered like Claude) */}
+            <AIResponse
+              citations={citations}
+              isStreaming={phase === "streaming"}
+              text={streamedText}
+            />
+
+            {/* Dynamic Assessment Panel (Collapsible - Collapsed by default, placed as an auditable note below response) */}
             {trace?.output?.assessment && (
-              <AssessmentPanel assessment={trace.output.assessment} />
+              <AssessmentPanel assessment={trace.output.assessment} defaultOpen={false} />
             )}
 
             {/* Interactive Remote Sensing Imagery Viewer (Layer toggles, before/after epochs, highlighted SVG overlays, legend) */}
@@ -1162,12 +1219,6 @@ function AssistantMessageItem({ message, onRetry }) {
                 />
               </div>
             )}
-
-            <AIResponse
-              citations={citations}
-              isStreaming={phase === "streaming"}
-              text={streamedText}
-            />
 
             {/* Spatial Grounding Box Visualization */}
             {normBox && Array.isArray(normBox) && normBox.length === 4 && (
@@ -1351,36 +1402,37 @@ const ChatPane = forwardRef(function ChatPane(
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <AIConversation className="flex-1 min-h-0 px-4 py-6 sm:px-8" contentKey={messages.length + (isThinking ? 1 : 0)}>
-        <div className="flex flex-col gap-5 pb-4 max-w-3xl mx-auto">
-          {/* Conversation Header */}
-          <div className="border-b border-border pb-4">
-            <div className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl text-foreground">
-              <span>{conversation.title}</span>
-            </div>
-            <div className="mb-3 text-xs font-mono text-muted-foreground">
-              Updated {timeAgo(conversation.updatedAt)} · {count} messages
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((t) => (
-                <span
-                  key={t}
-                  className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-0.5 text-xs font-medium text-foreground"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-
+      <AIConversation className="flex-1 min-h-0 px-4 py-6 sm:px-8" contentKey={`${conversation.id}-${messages.length}-${isThinking ? 1 : 0}`}>
+        <div className="flex flex-col gap-6 pb-6 max-w-3xl lg:max-w-[800px] w-full mx-auto">
           {/* Empty Conversation Guidance */}
           {messages.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              <p className="font-semibold text-foreground mb-1">No analysis queries yet</p>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Select a <strong>Demo Preset</strong> below or attach satellite imagery (.tif, .png) and ask questions
-                like &quot;Is there a road?&quot; or &quot;Where is the pasture?&quot;.
-              </p>
+            <div className="flex flex-col gap-6 py-6">
+              <div className="border-b border-border pb-4">
+                <div className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl text-foreground">
+                  <span>{conversation.title}</span>
+                </div>
+                <div className="mb-3 text-xs font-mono text-muted-foreground">
+                  Updated {timeAgo(conversation.updatedAt)} · {count} messages
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-0.5 text-xs font-medium text-foreground"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                <p className="font-semibold text-foreground mb-1">No analysis queries yet</p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Select a <strong>Demo Preset</strong> below or attach satellite imagery (.tif, .png) and ask questions
+                  like &quot;Is there a road?&quot; or &quot;Where is the pasture?&quot;.
+                </p>
+              </div>
             </div>
           ) : (
             <>
@@ -1424,7 +1476,7 @@ const ChatPane = forwardRef(function ChatPane(
 
                 if (m.role === "user") {
                   return (
-                    <div key={m.id} className="space-y-1">
+                    <div key={m.id} className="group space-y-1">
                       <AIMessage from="user" timestamp={timestamp} copyText={m.content}>
                         <div className="flex flex-col gap-2">
                           {/* Attached files chips */}
@@ -1436,17 +1488,17 @@ const ChatPane = forwardRef(function ChatPane(
                                 return (
                                   <span
                                     key={fIdx}
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-background/20 bg-background/10 px-2.5 py-0.5 text-xs font-mono"
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/50 bg-zinc-800/80 px-2.5 py-0.5 text-xs font-mono text-zinc-300"
                                   >
                                     {isTif ? (
-                                      <Satellite className="h-3 w-3" />
+                                      <Satellite className="h-3 w-3 text-sky-400" />
                                     ) : isSidecar ? (
-                                      <FileText className="h-3 w-3" />
+                                      <FileText className="h-3 w-3 text-amber-400" />
                                     ) : (
-                                      <Satellite className="h-3 w-3" />
+                                      <Satellite className="h-3 w-3 text-emerald-400" />
                                     )}
                                     <span>{file.name}</span>
-                                    <span className="rounded bg-background/20 px-1 text-[9px] uppercase font-bold">
+                                    <span className="rounded bg-zinc-900/60 px-1 text-[9px] uppercase font-bold text-zinc-400">
                                       {isTif ? "GeoTIFF" : isSidecar ? "Sidecar" : "PNG"}
                                     </span>
                                   </span>
@@ -1458,7 +1510,7 @@ const ChatPane = forwardRef(function ChatPane(
                         </div>
                       </AIMessage>
 
-                      <div className="flex justify-end gap-2 pr-2 text-[11px] text-muted-foreground">
+                      <div className="flex justify-end gap-2 pr-2 text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           className="inline-flex items-center gap-1 hover:text-foreground"
                           onClick={() => startEdit(m)}
@@ -1489,14 +1541,15 @@ const ChatPane = forwardRef(function ChatPane(
               {isThinking && (
                 <AIMessage
                   avatar={<SiriOrb size="26px" state="thinking" />}
+                  bubble={false}
                   from="assistant"
                   timestamp={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 >
-                  <div className="flex flex-col gap-3 min-w-0">
-                    <AIReasoning isStreaming={true}>
+                  <div className="flex flex-col gap-3 min-w-0 w-full">
+                    <AIReasoning isStreaming={true} defaultOpen={false}>
                       Inspecting input raster gates, validating CRS & ground sampling distance, and routing to multimodal remote sensing experts...
                     </AIReasoning>
-                    <AILoader label="Analyzing satellite imagery..." showElapsed variant="dots" />
+                    <AILoader label="Synthesizing geospatial intelligence..." showElapsed variant="dots" />
                   </div>
                 </AIMessage>
               )}
@@ -1507,6 +1560,7 @@ const ChatPane = forwardRef(function ChatPane(
 
       <Composer
         ref={composerRef}
+        messages={messages}
         onSend={async (payload) => {
           setBusy(true)
           await onSend?.(payload)

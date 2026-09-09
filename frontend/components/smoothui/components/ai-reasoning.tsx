@@ -45,12 +45,12 @@ const AIReasoning = ({
   children,
   className,
   collapseWhenDone = true,
-  defaultOpen,
+  defaultOpen = false,
   duration,
   isStreaming = false,
 }: AIReasoningProps) => {
   const shouldReduceMotion = useReducedMotion();
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? isStreaming);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   // Once someone opens or closes it by hand, stop deciding for them.
   const [isUserControlled, setIsUserControlled] = useState(false);
 
@@ -61,7 +61,7 @@ const AIReasoning = ({
     if (isStreaming) {
       startedAtRef.current = Date.now();
       setMeasuredSeconds(null);
-      if (!isUserControlled) {
+      if (!isUserControlled && defaultOpen) {
         setIsOpen(true);
       }
       return;
@@ -70,7 +70,7 @@ const AIReasoning = ({
       setMeasuredSeconds((Date.now() - startedAtRef.current) / MS_PER_SECOND);
       startedAtRef.current = null;
     }
-  }, [isStreaming, isUserControlled]);
+  }, [isStreaming, isUserControlled, defaultOpen]);
 
   useEffect(() => {
     if (isStreaming || !collapseWhenDone || isUserControlled) {

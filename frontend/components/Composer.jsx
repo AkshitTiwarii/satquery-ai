@@ -1,13 +1,13 @@
 "use client"
 
-import { useRef, useState, forwardRef, useImperativeHandle, useEffect } from "react"
+import { useRef, useState, forwardRef, useImperativeHandle, useEffect, useMemo } from "react"
 import { Send, Loader2, Plus, Sparkles, X, Image as ImageIcon, ChevronDown, Satellite, MapPin } from "lucide-react"
 import { cls } from "./utils"
 import { CANONICAL_DEMO_QUERIES, fileToBase64, loadFixtureAsBase64 } from "@/lib/satquery"
 import { AIContextMeter } from "./smoothui"
 import MapAoiPickerModal from "./MapAoiPickerModal"
 
-const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
+const Composer = forwardRef(function Composer({ onSend, busy, messages = [] }, ref) {
   const [value, setValue] = useState("")
   const [sending, setSending] = useState(false)
   const [lineCount, setLineCount] = useState(1)
@@ -201,10 +201,44 @@ const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
     }
   }
 
+  const contextStats = useMemo(() => {
+    // System core instructions and tool definitions baseline
+    const SYSTEM_CORE_TOKENS = 1850
+
+    let historyTokens = 0
+    if (Array.isArray(messages) && messages.length > 0) {
+      messages.forEach((m) => {
+        const textLen = (m?.content || "").length
+        const thoughtLen = (m?.trace?.thought_process || "").length
+        const msgTokens = Math.ceil((textLen + thoughtLen) / 3.8)
+        const fileTokens = (m?.files?.length || 0) * 2800
+        historyTokens += msgTokens + fileTokens
+      })
+    }
+
+    const draftTokens = value.trim() ? Math.max(1, Math.ceil(value.trim().length / 3.8)) : 0
+    const activeAttachmentTokens = attachedFiles.length * 2800
+    const totalUsed = SYSTEM_CORE_TOKENS + historyTokens + activeAttachmentTokens + draftTokens
+    const limit = 128000
+
+    const breakdown = [
+      { label: "System Core & Tools", tokens: SYSTEM_CORE_TOKENS },
+      ...(historyTokens > 0
+        ? [{ label: `Chat History (${messages.length} msgs)`, tokens: historyTokens }]
+        : []),
+      ...(activeAttachmentTokens > 0
+        ? [{ label: `Attached Rasters (${attachedFiles.length})`, tokens: activeAttachmentTokens }]
+        : []),
+      ...(draftTokens > 0 ? [{ label: "Active Input", tokens: draftTokens }] : []),
+    ]
+
+    return { totalUsed, limit, breakdown }
+  }, [messages, attachedFiles, value])
+
   const hasContent = value.trim().length > 0
 
   return (
-    <div className="shrink-0 border-t border-zinc-200/60 p-4 dark:border-zinc-800">
+    <div className="shrink-0 border-t border-zinc-200/60 px-4 py-2.5 sm:py-3 dark:border-zinc-800">
       <input
         type="file"
         ref={fileInputRef}
@@ -217,12 +251,12 @@ const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
       <div
         className={cls(
           "mx-auto flex flex-col rounded-3xl border bg-white shadow-sm dark:bg-zinc-950 transition-all duration-200",
-          "max-w-3xl border-zinc-200 dark:border-zinc-800",
+          "max-w-4xl xl:max-w-5xl border-zinc-200 dark:border-zinc-800",
         )}
       >
         {/* Attached Files Chips */}
         {attachedFiles.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-4 pt-3 pb-1 border-b border-zinc-100 dark:border-zinc-900">
+          <div className="flex flex-wrap gap-2 px-4 pt-2.5 pb-1 border-b border-zinc-100 dark:border-zinc-900">
             {attachedFiles.map((file, idx) => (
               <div
                 key={idx}
@@ -251,7 +285,7 @@ const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
         )}
 
         {/* Textarea area - grows upward */}
-        <div className="flex-1 px-4 pt-4 pb-2">
+        <div className="flex-1 px-4 pt-2.5 pb-1">
           <textarea
             ref={inputRef}
             value={value}
@@ -264,8 +298,8 @@ const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
             rows={1}
             disabled={loadingPreset}
             className={cls(
-              "w-full resize-none bg-transparent text-sm outline-none placeholder:text-zinc-400 transition-all duration-200",
-              "min-h-[24px] text-left leading-6",
+              "w-full resize-none bg-transparent text-[13.5px] sm:text-sm outline-none placeholder:text-zinc-400 transition-all duration-200",
+              "min-h-[22px] text-left leading-5 sm:leading-6",
             )}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -277,7 +311,7 @@ const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
         </div>
 
         {/* Bottom toolbar: Attach & Demo Presets on left, Send on right */}
-        <div className="flex items-center justify-between px-3 pb-3">
+        <div className="flex items-center justify-between px-3 pb-2">
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -344,21 +378,9 @@ const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
             {/* AI Context Window Meter (SmoothUI) */}
             <div className="hidden sm:inline-flex items-center">
               <AIContextMeter
-                used={
-                  2400 +
-                  (attachedFiles.length > 0 ? attachedFiles.length * 4200 : 0) +
-                  Math.max(150, Math.round(value.length / 3.2)) +
-                  1850
-                }
-                limit={128000}
-                breakdown={[
-                  { label: "Vision-Language System", tokens: 2400 },
-                  ...(attachedFiles.length > 0
-                    ? [{ label: `GeoTIFF Rasters (${attachedFiles.length})`, tokens: attachedFiles.length * 4200 }]
-                    : []),
-                  { label: "Query & Active Input", tokens: Math.max(150, Math.round(value.length / 3.2)) },
-                  { label: "Spatial Grounding Plan", tokens: 1850 },
-                ]}
+                used={contextStats.totalUsed}
+                limit={contextStats.limit}
+                breakdown={contextStats.breakdown}
               />
             </div>
           </div>
@@ -384,7 +406,7 @@ const Composer = forwardRef(function Composer({ onSend, busy }, ref) {
         </div>
       </div>
 
-      <div className="mx-auto mt-2 max-w-3xl px-1 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
+      <div className="mx-auto mt-1.5 max-w-4xl xl:max-w-5xl px-1 text-center text-[10px] sm:text-[11px] text-zinc-400 dark:text-zinc-500">
         SatQuery AI · Autonomous Multi-Agent Vision-Language Assistant for Remote Sensing
       </div>
       {/* Map AOI Picker Modal */}

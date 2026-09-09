@@ -641,15 +641,37 @@ export default function LandingPage() {
       <InteractiveQueryDemo />
 
       {/* THE PROBLEM */}
-      <section id="problem" className="border-t border-white/10 bg-[#05080b] px-4 py-16 sm:px-6 sm:py-24 md:px-10 md:py-32">
+      <section id="problem" className="relative border-t border-white/10 bg-[#05080b] px-4 py-16 sm:px-6 sm:py-24 md:px-10 md:py-32 overflow-hidden">
+        {/* Support both #problem and #problems anchor links */}
+        <span id="problems" className="absolute -top-24 opacity-0 pointer-events-none" />
+
         <div className="mx-auto max-w-6xl">
-          <div className="max-w-3xl">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-6xl leading-[1.02] tracking-[-0.07em] text-balance">
-              Satellite intelligence is powerful and painfully fragmented.
-            </h2>
-            <p className="mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base leading-relaxed text-white/60">
-              Today, getting a real answer means stitching together separate tools, sensors, and specialists. SatQuery AI collapses that workflow into one conversation.
-            </p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 lg:gap-12">
+            <div className="max-w-2xl">
+              <h2 className="font-display text-3xl sm:text-4xl md:text-6xl leading-[1.02] tracking-[-0.07em] text-balance">
+                Satellite intelligence is powerful and painfully fragmented.
+              </h2>
+              <p className="mt-4 sm:mt-6 max-w-xl text-sm sm:text-base leading-relaxed text-white/60">
+                Today, getting a real answer means stitching together separate tools, sensors, and specialists. SatQuery AI collapses that workflow into one conversation.
+              </p>
+            </div>
+
+            {/* ISRO Satellite Image on Right — diagonal and close to heading */}
+            <div className="relative shrink-0 flex items-center justify-center lg:justify-end pt-2 lg:pt-0">
+              {/* Subtle ambient orbital glow */}
+              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-sky-500/20 via-[#0080ff]/10 to-transparent blur-2xl pointer-events-none" />
+
+              <div className="relative w-full max-w-[320px] sm:max-w-[380px] lg:max-w-[390px] xl:max-w-[420px] overflow-hidden rounded-2xl border border-white/15 bg-[#030712]/90 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_30px_rgba(56,189,248,0.12)] transform -rotate-3 sm:-rotate-5 hover:-rotate-1 transition-all duration-500 group">
+                <img
+                  src="/isro-satellite.png"
+                  alt="ISRO Earth Observation Satellite"
+                  className="w-full h-auto object-cover select-none transition-transform duration-700 group-hover:scale-103"
+                />
+                {/* Sleek glassmorphic subtle rim light */}
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/15 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#05080b]/50 via-transparent to-transparent pointer-events-none" />
+              </div>
+            </div>
           </div>
           <div className="mt-10 sm:mt-16 grid gap-0 border-y border-white/15 md:grid-cols-3">
             {problemCards.map((card) => {
