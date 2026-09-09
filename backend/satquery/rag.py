@@ -118,6 +118,98 @@ class DomainRAGEngine:
         else:
             confidence_pct = int(round(float(confidence_val) * 100)) if float(confidence_val) <= 1.0 else int(round(float(confidence_val)))
 
+        # Case 0: Geographic Area / Natural Language Briefing without files
+        if not has_user_files and region is not None:
+            n_scenes = len(bhoonidhi_scenes)
+            satellites = list({s.get("satellite", "Sentinel-2") for s in bhoonidhi_scenes}) or ["Sentinel-2", "EOS-04"]
+            sats_str = " + ".join(satellites[:2])
+            is_ocean = region.get("is_ocean", False)
+
+            if intent.get("is_temporal") or task in ("change_vqa", "rs_fusion_change"):
+                headline = f"Bi-Temporal Change Requirements for {region_name}."
+                summary = (
+                    f"Geospatial AOI extent resolved for {region_name}. Measuring physical land/surface dynamics "
+                    f"requires specifying two acquisition epochs (e.g. 2021 vs 2024) or ingesting pre/post GeoTIFF scenes."
+                )
+                metric1_label = "Target Domain"
+                metric1_val = "Marine / Ocean" if is_ocean else "Terrestrial AOI"
+                metric2_label = "Required Epochs"
+                metric2_val = "2 Passes (T1/T2)"
+                advisory = "Specify two observation dates in your prompt or upload pre/post GeoTIFF rasters via +."
+                advisory_level = "info"
+
+                return {
+                    "headline": headline,
+                    "summary": summary,
+                    "metrics": [
+                        {
+                            "label": metric1_label,
+                            "value": metric1_val,
+                            "icon": "map-pin",
+                            "tooltip": "Geographic terrain classification for target coordinates",
+                        },
+                        {
+                            "label": metric2_label,
+                            "value": metric2_val,
+                            "icon": "clock",
+                            "tooltip": "Temporal baseline and monitoring passes needed for delta calculation",
+                        },
+                        {
+                            "label": "Supported Sensors",
+                            "value": sats_str,
+                            "icon": "satellite",
+                            "tooltip": "Active satellite missions providing observation coverage over AOI",
+                        },
+                    ],
+                    "advisory": advisory,
+                    "advisory_level": advisory_level,
+                }
+
+            if task == "catalog_search":
+                if n_scenes > 0:
+                    headline = f"ISRO Bhoonidhi STAC: {n_scenes} passes identified for {region_name}."
+                    summary = (
+                        f"Live STAC query retrieved {n_scenes} candidate remote sensing passes covering the target AOI footprint. "
+                        f"Available missions include {sats_str} with complete radiometric coverage."
+                    )
+                    advisory = "Interactive AOI footprint rendered below. Attach GeoTIFF scenes to run autonomous pixel inference."
+                    advisory_level = "info"
+                else:
+                    headline = f"Bhoonidhi STAC catalog queried for {region_name}."
+                    summary = (
+                        f"No direct-download digital scenes were returned in the active open STAC catalog for the requested "
+                        f"observation parameters. Historical IRS data can be ordered via the NRSC Bhoonidhi Archive Portal."
+                    )
+                    advisory = "Upload GeoTIFF raster files via the + button to perform immediate local analysis."
+                    advisory_level = "warning"
+
+                return {
+                    "headline": headline,
+                    "summary": summary,
+                    "metrics": [
+                        {
+                            "label": "STAC Passes",
+                            "value": f"{n_scenes} scenes",
+                            "icon": "satellite",
+                            "tooltip": "Candidate remote sensing acquisitions matched in active STAC catalog",
+                        },
+                        {
+                            "label": "Target AOI",
+                            "value": "100% covered",
+                            "icon": "crosshair",
+                            "tooltip": "Geodetic footprint overlap with user-specified area of interest",
+                        },
+                        {
+                            "label": "Available Sensors",
+                            "value": sats_str,
+                            "icon": "layers",
+                            "tooltip": "Active satellite missions with coverage over coordinates",
+                        },
+                    ],
+                    "advisory": advisory,
+                    "advisory_level": advisory_level,
+                }
+
         # Case A: Spatial Grounding (Localization)
         if task == "grounding":
             norm_box = quantities.get("norm_box")
@@ -563,20 +655,45 @@ class DomainRAGEngine:
         if not rendered_images or len(rendered_images) == 0:
             return None
 
-        years = intent.get("years", [])
-        y1 = years[0] if years else "12 Aug"
-        y2 = years[-1] if len(years) > 1 else "24 Aug"
+        # 1. Dynamic Temporal Epochs (Only for multi-temporal change detection with 2+ images)
+        is_temporal = bool(
+            intent.get("is_temporal")
+            or task in ("change_vqa", "rs_fusion_change")
+            or any(w in query.lower() for w in ["change", "difference", "compare", "between", "before and after", "what changed", "increased", "decreased"])
+        )
 
-        epochs = [
-            {"id": "before", "label": f"Before ({y1})"},
-            {"id": "after", "label": f"After ({y2})"},
-        ]
+        epochs = None
+        if is_temporal and len(rendered_images) >= 2:
+            years = intent.get("years", [])
+            if len(years) >= 2:
+                y1, y2 = years[0], years[-1]
+            elif len(years) == 1:
+                y1 = str(int(years[0]) - 1)
+                y2 = years[0]
+            else:
+                y1 = "Baseline"
+                y2 = "Post-event"
 
-        layers = [
-            {"id": "optical", "label": "Optical (Sentinel-2)"},
-            {"id": "sar", "label": "SAR (Sentinel-1 / EOS-04)"},
-            {"id": "fused", "label": "Fused (S1 + S2)"},
-        ]
+            epochs = [
+                {"id": "before", "label": f"Before ({y1})"},
+                {"id": "after", "label": f"After ({y2})"},
+            ]
+
+        # 2. Dynamic Imagery Sensor Layers (Only show SAR/Fused if SAR imagery is actually present)
+        has_sar = any("sar" in img.get("name", "").lower() or "radar" in img.get("name", "").lower() or img.get("type", "").lower() == "sar" for img in rendered_images)
+        has_opt = any("opt" in img.get("name", "").lower() or "rgb" in img.get("name", "").lower() or img.get("type", "").lower() != "sar" for img in rendered_images)
+
+        layers = None
+        if has_sar and has_opt:
+            layers = [
+                {"id": "optical", "label": "Optical (Sentinel-2)"},
+                {"id": "sar", "label": "SAR (Sentinel-1 / EOS-04)"},
+                {"id": "fused", "label": "Fused (S1 + S2)"},
+            ]
+        elif has_sar and not has_opt:
+            layers = [{"id": "sar", "label": "SAR Backscatter (VV/VH)"}]
+        elif has_opt and not has_sar and len(rendered_images) > 1:
+            layers = [{"id": "optical", "label": "Optical True Color"}]
 
         norm_box = quantities.get("norm_box")
         target_name = sem.get("target_subject", "Feature").title()
@@ -681,18 +798,16 @@ class DomainRAGEngine:
                     "label": "Affected crop parcel",
                 })
 
+        default_ep = "after" if (epochs and len(epochs) > 1) else None
+        default_lay = "fused" if (layers and any(l["id"] == "fused" for l in layers)) else ("optical" if (layers and any(l["id"] == "optical" for l in layers)) else "sar")
+
         return {
-            "can_toggle_temporal": len(rendered_images) > 1 or task in ("rs_fusion_change", "change_vqa"),
+            "can_toggle_temporal": bool(epochs and len(epochs) > 1),
             "epochs": epochs,
             "layers": layers,
-            "default_epoch": "after",
-            "default_layer": "fused" if task in ("rs_fusion_change", "fusion") else "optical",
+            "default_epoch": default_ep,
+            "default_layer": default_lay,
             "legend": legend,
             "highlights": highlights,
-            "place_labels": [
-                {"name": "Kalyanpur", "x": 36, "y": 14},
-                {"name": "Rivermere", "x": 62, "y": 30},
-                {"name": "Chandipur", "x": 10, "y": 70},
-                {"name": "Sonai River", "x": 64, "y": 52},
-            ] if is_flood else [],
+            "place_labels": [],
         }

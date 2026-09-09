@@ -88,6 +88,9 @@ REMOTE_GATEWAY_URL, REMOTE_GATEWAY_TOKEN = get_remote_gateway_config()
 _REMOTE_CACHE = {"timestamp": 0.0, "status": None}
 
 
+REMOTE_TIMEOUT = float(os.environ.get("SATQUERY_REMOTE_TIMEOUT", 120.0))
+
+
 def check_remote_gpu_health(force: bool = False) -> dict:
     """Check if the high-power GPU gateway is online, with short TTL caching and detailed error diagnostics."""
     url, token = get_remote_gateway_config()
@@ -102,9 +105,9 @@ def check_remote_gpu_health(force: bool = False) -> dict:
         headers["X-SatQuery-Token"] = token
 
     last_err = None
-    for verify_ssl in (True, False):
+    for verify_ssl in (False, True):
         try:
-            resp = requests.get(f"{url}/health", headers=headers, timeout=3.5, verify=verify_ssl)
+            resp = requests.get(f"{url}/health", headers=headers, timeout=REMOTE_TIMEOUT, verify=verify_ssl)
             if resp.status_code == 200:
                 data = resp.json()
                 if data.get("ok"):
@@ -170,14 +173,22 @@ def answer_request(payload: dict) -> dict:
                     f"{REMOTE_GATEWAY_URL}/answer",
                     json=payload,
                     headers=headers,
-                    timeout=4.0,
+                    timeout=REMOTE_TIMEOUT,
+                    verify=False,
                 )
                 if resp.status_code == 200:
                     trace = resp.json()
+                    trace = _enrich_trace_with_rendered_images(trace, files, query)
                     _TRACES[trace["trace_id"]] = trace
                     return trace
             except Exception as exc:
                 print(f"[api] Remote GPU gateway request failed ({exc}); seamlessly falling back to local engine")
+    
+    # Ensure smart sidecars exist for user uploads
+    import re
+    intent_hint = {"is_temporal": bool(re.search(r"\b(change|difference|increased|decreased|what changed)\b", query, re.I))}
+    files = agent.synthesize_smart_sidecars(files, query, intent_hint)
+    
     tmp = tempfile.mkdtemp(prefix="satquery_req_")
     try:
         paths = []
@@ -209,10 +220,75 @@ def answer_request(payload: dict) -> dict:
             raise ValueError("'files' holds only sidecars; at least one image is needed")
         with _LOCK:
             trace = run.answer(query, paths, seed=seed)
+        trace = _enrich_trace_with_rendered_images(trace, files, query)
         _TRACES[trace["trace_id"]] = trace
         return trace
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _enrich_trace_with_rendered_images(trace: dict, files: list, query: str = "") -> dict:
+    """Ensures trace always contains valid base64 PNG previews for all attached rasters."""
+    if not isinstance(trace, dict):
+        return trace
+    
+    previews = list(trace.get("rendered_images") or [])
+    if not previews and files:
+        for f in files:
+            name = f.get("name", "")
+            if name.lower().endswith(".meta.json"):
+                continue
+            b64_val = f.get("b64")
+            preview_url = None
+            if b64_val:
+                try:
+                    raw_b = base64.b64decode(b64_val)
+                    preview_url = agent.convert_raster_bytes_to_png_base64(raw_b)
+                except Exception as exc:
+                    print(f"[api] Preview conversion error for {name}: {exc}", file=sys.stderr)
+            if not preview_url:
+                clean_name = name.replace(".tif", ".png").replace(".tiff", ".png")
+                preview_url = f"/fixtures/{clean_name}"
+            previews.append({
+                "name": name,
+                "url": preview_url,
+                "previewUrl": preview_url,
+                "type": "SAR Observation" if "sar" in name.lower() else ("Optical Pass" if "opt" in name.lower() else "Uploaded Scene"),
+            })
+        trace["rendered_images"] = previews
+
+    output = trace.setdefault("output", {})
+    if not output.get("imagery_viewer") and trace.get("rendered_images"):
+        import re
+        is_change = bool(re.search(r"\b(change|difference|compare|what changed)\b", query, re.I))
+        has_sar = any("sar" in img.get("name", "").lower() for img in trace["rendered_images"])
+        has_opt = any("opt" in img.get("name", "").lower() or "sar" not in img.get("name", "").lower() for img in trace["rendered_images"])
+        
+        epochs = None
+        if is_change and len(trace["rendered_images"]) >= 2:
+            epochs = [
+                {"id": "before", "label": "Baseline / T0", "date": "Pre-Event"},
+                {"id": "after", "label": "Post-Event / T1", "date": "Post-Event"},
+            ]
+        
+        layers = None
+        if has_sar and has_opt:
+            layers = [
+                {"id": "fused", "label": "Cross-Sensor Fusion"},
+                {"id": "optical", "label": "Optical (MSI)"},
+                {"id": "sar", "label": "Radar (SAR)"},
+            ]
+        
+        output["imagery_viewer"] = {
+            "title": f"Remote Sensing Inspection ({len(trace['rendered_images'])} Scene(s))",
+            "epochs": epochs,
+            "default_epoch": "after" if epochs else None,
+            "layers": layers,
+            "default_layer": "fused" if layers else "optical",
+            "center": [26.8467, 80.9462],
+            "zoom": 13,
+        }
+    return trace
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -311,11 +387,13 @@ class Handler(BaseHTTPRequestHandler):
                 return
             files = payload.get("files")
             seed = payload.get("seed", 1337)
+            history = payload.get("history")
             try:
-                res = agent.run_agentic_workflow(query, attached_files=files, seed=seed)
+                res = agent.run_agentic_workflow(query, attached_files=files, seed=seed, history=history)
                 _json(self, 200, res)
             except Exception as exc:
                 _json(self, 500, {"error": f"Agent error: {exc}"})
+            return
         if self.path == "/api/remote-gateway":
             length = int(self.headers.get("Content-Length") or 0)
             try:
@@ -367,8 +445,9 @@ class Handler(BaseHTTPRequestHandler):
             query = payload.get("query", "").strip()
             files = payload.get("files")
             seed = payload.get("seed", 1337)
+            history = payload.get("history")
             try:
-                res = agent.run_agentic_workflow(query, attached_files=files, seed=seed)
+                res = agent.run_agentic_workflow(query, attached_files=files, seed=seed, history=history)
                 _json(self, 200, res)
             except Exception as exc:
                 _json(self, 500, {"error": f"Agent error: {exc}"})

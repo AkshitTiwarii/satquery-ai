@@ -24,6 +24,11 @@ if sys.platform == "win32":
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+    try:
+        import rich.console
+        rich.console.Console.is_terminal = lambda self: False
+    except Exception:
+        pass
 
 try:
     from bhoonidhi_downloader.sdk import BhoonidhiClient

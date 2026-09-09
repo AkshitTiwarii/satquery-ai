@@ -485,9 +485,25 @@ def zoom_crop(query, images, params, seed, payload=None):
 
 def caption_rs(query, images, params, seed, payload=None):
     if not models.available():
+        spec = _analyze_raster_spectral(images[0])
+        text = (
+            f"The scene exhibits {spec['dominant_cover'].lower()} as the dominant surface class, "
+            f"comprising approximately {spec['veg_pct']}% vegetative cover, {spec['builtup_pct']}% built-up structures, "
+            f"and {spec['water_pct']}% open water surface. Spectral analysis indicates a mean radiometric brightness of "
+            f"{spec['mean_brightness']}, with {spec['building_count']} distinct structural footprints and {spec['road_segments']} road segments."
+        )
         return ToolResult(
-            text="[stub] a description of one %s scene" % images[0].modality,
+            text=text,
             confidence=_conf(seed, "caption.rs", images, params),
+            quantities={
+                "dominant_cover": spec["dominant_cover"],
+                "veg_pct": spec["veg_pct"],
+                "builtup_pct": spec["builtup_pct"],
+                "water_pct": spec["water_pct"],
+                "barren_pct": spec["barren_pct"],
+                "road_pct": spec["road_pct"],
+                "building_count": spec["building_count"],
+            },
             stub=True,
         )
     out = models.generate(
@@ -559,8 +575,19 @@ def change_vqa(query, images, params, seed, payload=None):
             delta = round(shift_px_ratio * 100.0, 1)
             feat_name = "surface land cover"
 
-        # Formulate answer strictly matching the question's hypothesis
-        if hyp == "increase":
+        # Formulate answer strictly matching the question's hypothesis or multi-choice trend
+        is_three_way = any(p in query.lower() for p in [
+            "increased, decreased", "increased or decreased", "increased, decreased, or",
+            "increase, decrease", "increase or decrease", "trend"
+        ])
+        if is_three_way:
+            if delta > 1.5:
+                ans = f"Increased (+{abs(delta):.1f}% expansion in {feat_name})"
+            elif delta < -1.5:
+                ans = f"Decreased (-{abs(delta):.1f}% reduction in {feat_name})"
+            else:
+                ans = f"Remained unchanged (stable surface dynamics in {feat_name})"
+        elif hyp == "increase":
             ans = "yes" if delta > 1.5 else "no"
         elif hyp == "decrease":
             ans = "yes" if delta < -1.5 else "no"
